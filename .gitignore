@@ -1,2 +1,5 @@
 docs/build/
+docs/refs/
+harness.toml
+.harness/
 Manifest.toml
