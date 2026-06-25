@@ -1,4 +1,4 @@
-using MyModule
+using WilsonNRG
 using Documenter
 using Downloads
 
@@ -11,9 +11,9 @@ Downloads.download("https://github.com/sotashimozono.png", favicon_path)
 Downloads.download("https://github.com/sotashimozono.png", logo_path)
 
 makedocs(;
-    sitename="MyModule.jl",
+    sitename="WilsonNRG.jl",
     format=Documenter.HTML(;
-        canonical="https://codes.sota-shimozono.com/MyModule.jl/stable/",
+        canonical="https://codes.sota-shimozono.com/WilsonNRG.jl/stable/",
         prettyurls=get(ENV, "CI", "false") == "true",
         mathengine=MathJax3(
             Dict(
@@ -26,13 +26,13 @@ makedocs(;
         ),
         assets=["assets/favicon.ico", "assets/custom.css"],
     ),
-    modules=[MyModule],
+    modules=[WilsonNRG],
     pages=["Home" => "index.md"],
 )
 
 deploydocs(;
     versions=["stable", "dev"],
-    repo="github.com/sotashimozono/MyModule.jl.git",
+    repo="github.com/sotashimozono/WilsonNRG.jl.git",
     devbranch="main",
     push_preview=true,
 )

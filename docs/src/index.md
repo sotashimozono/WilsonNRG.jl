@@ -1,7 +1,7 @@
-# MyModule.jl
+# WilsonNRG.jl
 
 ## Models
 
 ```@autodocs
-Modules = [MyModule]
+Modules = [WilsonNRG]
 ```
