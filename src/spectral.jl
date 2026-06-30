@@ -27,6 +27,12 @@ _compound_operator(F0) = Dict(k => copy(v) for (k, v) in F0 if k == (1, -1, 1))
 function _gf_poles(
     model::AbstractImpurityModel, alg::NRGAlgorithm; window::Real, with_F::Bool
 )
+    alg.symmetry isa U1U1 || throw(
+        EngineUnimplemented(
+            "_gf_poles needs U1U1: it indexes the (Q, 2Sz, σ) operator blocks with Int arithmetic; " *
+            "U1SU2 stores Rational-spin keys. (Callers already guard, but this is defensive.)",
+        ),
+    )
     chain = wilson_chain(alg.discretization, model, alg.nsites)
     sym = alg.symmetry
     sqrtΛ = sqrt(alg.discretization.Λ)

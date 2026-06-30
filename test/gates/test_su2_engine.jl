@@ -36,4 +36,10 @@ using WilsonNRG, Test
     e0s = sort([round(e; digits=6) for (e, twoS) in r0s.levels[end] for _ in 1:(twoS + 1)])
     e0u = sort([round(e; digits=6) for (e, _) in r0u.levels[end]])
     @test e0s == e0u
+
+    # thermodynamics/magnetization must REFUSE a U1SU2 result (its levels are 2S, not 2Sz) —
+    # guarded, not silently mis-summed. SU(2)-correct thermo is a separate (multiplet-aware) layer.
+    alg_su2 = NRGAlgorithm(; discretization=disc, symmetry=U1SU2(), truncation=keepall, nsites=2)
+    @test_throws WilsonNRG.EngineUnimplemented thermodynamics(m, alg_su2)
+    @test_throws WilsonNRG.EngineUnimplemented magnetization(m, alg_su2; h=0.01)
 end

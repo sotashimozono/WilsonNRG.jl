@@ -63,7 +63,10 @@ end
 Clebsch–Gordan coefficient ⟨j1 m1; j2 m2 | J M⟩ (via the 3-j symbol).
 """
 function clebsch_gordan(j1, m1, j2, m2, J, M)
-    (-1)^(j1 - j2 + M) * sqrt(2J + 1) * wigner3j(j1, j2, J, m1, m2, -M)
+    # a half-integer phase exponent ⇒ a selection rule is violated ⇒ the CG vanishes; return 0
+    # rather than letting `(-1.0)^(half-integer)` throw a DomainError (robust for public callers).
+    isinteger(j1 - j2 + M) || return 0.0
+    return (-1)^Int(j1 - j2 + M) * sqrt(2J + 1) * wigner3j(j1, j2, J, m1, m2, -M)
 end
 
 """

@@ -78,6 +78,13 @@ Use `alg.truncation = EnergyCut(...)` (see the note in this file): a fixed `Keep
 under-resolves the impurity-doubled run and the local-moment plateau undershoots.
 """
 function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar::Real=1.0)
+    alg.symmetry isa U1U1 || throw(
+        EngineUnimplemented(
+            "thermodynamics needs U1U1 (got $(typeof(alg.symmetry))): the (energy, 2S) " *
+            "multiplet levels of non-abelian symmetries need a multiplet-aware shell sum " *
+            "(2S+1 degeneracy + ⟨Sz²⟩=S(S+1)/3), not the per-state 2Sz form used here.",
+        ),
+    )
     full = nrg_solve(model, alg)
     bath = bath_reference(model, alg)
     T = Float64[]
@@ -125,6 +132,12 @@ reproduces the fluctuation susceptibility from [`thermodynamics`](@ref)
 function magnetization(
     model::AbstractImpurityModel, alg::NRGAlgorithm; h::Real, betabar::Real=1.0
 )
+    alg.symmetry isa U1U1 || throw(
+        EngineUnimplemented(
+            "magnetization needs U1U1 (got $(typeof(alg.symmetry))): non-abelian (energy, 2S) " *
+            "levels need a multiplet-aware Zeeman sum over Sz=-S..S, not the per-state form here.",
+        ),
+    )
     full = nrg_solve(model, alg)
     bath = bath_reference(model, alg)
     T = Float64[]

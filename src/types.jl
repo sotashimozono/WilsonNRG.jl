@@ -279,8 +279,11 @@ on it.
 - `algorithm::NRGAlgorithm`  — the scheme configuration
 - `energies::Vector{Vector{Float64}}` — rescaled, ground-subtracted eigenvalues kept at each iteration
 - `kept::Vector{Int}`        — number of states kept per iteration
-- `levels::Vector{Vector{Tuple{Float64,Int}}}` — per iteration, the kept `(energy, 2Sₙ)` pairs
-  (the quantum-number-resolved spectrum the thermodynamics/spectral layers consume)
+- `levels::Vector{Vector{Tuple{Float64,Int}}}` — per iteration, the kept `(energy, spin-label)`
+  pairs. **The `Int` is symmetry-dependent**: for abelian symmetries (`U1U1`) it is `2Sₙ` and each
+  entry is one physical state; for non-abelian symmetries (`U1SU2`) it is `2S` and each entry is one
+  *multiplet* of `2S+1` states — consumers must weight by [`multiplicity`](@ref). (`thermodynamics`/
+  `magnetization` therefore currently require `U1U1`; the spectral layer guards likewise.)
 - `scale::Vector{Float64}`   — `ωₙ`, the characteristic energy (shell) scale of each iteration
 """
 struct NRGResult

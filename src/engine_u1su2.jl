@@ -24,7 +24,11 @@ using LinearAlgebra: Symmetric, eigen
 # electron-site spin reduced MEs ⟨s′‖f†_site‖s⟩ and the conjugate annihilation ⟨b‖f̃‖a⟩
 _su2_fdag(s, sp) = (s == 0 // 1 && sp == 1 // 2) ? 1.0 :
                    (s == 1 // 2 && sp == 0 // 1) ? -sqrt(2.0) : 0.0
-_su2_ftil(sa, sb) = (-1.0)^(1 // 2 + sa - sb) * sqrt((2sa + 1) / (2sb + 1)) * _su2_fdag(sb, sa)
+function _su2_ftil(sa, sb)
+    f = _su2_fdag(sb, sa)              # 0 unless |sa−sb|=½, where the phase exponent is integer
+    f == 0.0 && return 0.0
+    return (-1.0)^Int(1 // 2 + sa - sb) * sqrt((2sa + 1) / (2sb + 1)) * f
+end
 _su2_tri(a, b, c) = (abs(a - b) ≤ c ≤ a + b)
 
 # site f† Sz-resolved ME ⟨s′ ms′|f†_μ|s ms⟩ (μ = ms′−ms), for the grounded recoupling
@@ -41,6 +45,7 @@ end
 # reduced ME ⟨(S_k,s′)S′‖f†_site‖(S_k,s)S⟩ (spin part) by explicit CG contraction over the
 # spectator multiplet S_k — an exact Wigner 6-j evaluated numerically (no convention ambiguity).
 function _su2_recouple(Sk, s, sp, S, Sp)
+    result = nothing
     for μ in (1 // 2, -1 // 2)
         Szp = S + μ
         abs(Szp) ≤ Sp || continue
@@ -53,13 +58,21 @@ function _su2_recouple(Sk, s, sp, S, Sp)
             (c1 == 0 || c2 == 0) && continue
             me += c1 * c2 * _su2_site_me(s, ms, sp, msp, μ)
         end
-        return me / cgWE
+        val = me / cgWE
+        # Wigner-Eckart: the reduced ME is independent of μ. Assert agreement across both valid μ
+        # — turns a future CG/site-ME convention regression (which the end-to-end gate could mask)
+        # into an immediate error.
+        if result === nothing
+            result = val
+        else
+            @assert isapprox(result, val; atol=1.0e-9) "Wigner-Eckart violation in _su2_recouple"
+        end
     end
-    return 0.0
+    return result === nothing ? 0.0 : result
 end
 
-# electron-site multiplets (Q, S)
-const _SU2_SITE = ((0, 0 // 1), (1, 1 // 2), (2, 0 // 1))
+# electron-site multiplets (Q, S) — the same data as su2.jl's _ELECTRON_MULTIPLETS (one source)
+const _SU2_SITE = _ELECTRON_MULTIPLETS
 
 """
     U1SU2State
@@ -174,6 +187,9 @@ function update_operators(diag::U1SU2Diag, plan::Dict{K,Vector{Int}}, ::U1SU2) w
         Enew[qn] = diag.vals[qn][idx]
         Vk[qn] = diag.vecs[qn][:, idx]
     end
+    isempty(Enew) && throw(
+        ArgumentError("truncation kept no states; loosen EnergyCut or increase KeepN"),
+    )
     g = minimum(minimum, values(Enew))
     for qn in keys(Enew)
         Enew[qn] = Enew[qn] .- g
