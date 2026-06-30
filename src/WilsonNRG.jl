@@ -37,6 +37,7 @@ export KeepN, EnergyCut
 export WilsonChain, NRGAlgorithm, NRGResult, EngineUnimplemented
 export wilson_chain, asymptotic_hopping, hybridization, bath_coupling, nrg_solve, spectral
 export shell_scale, thermodynamics, magnetization
+export clebsch_gordan, wigner3j, wigner6j
 
 include("bootstrap.jl")
 include("types.jl")
@@ -45,5 +46,6 @@ include("interface.jl")
 include("engine_u1u1.jl")
 include("thermodynamics.jl")
 include("kondo.jl")
+include("su2.jl")
 
 end # module WilsonNRG
