@@ -47,6 +47,16 @@ deterministic faithfulness anchor for the discretization (KWW 1980 / Bulla 2008)
 asymptotic_hopping(disc::WilsonLog) = (1 + disc.Λ^(-1)) / 2
 
 """
+    shell_scale(disc::AbstractDiscretization, n) -> Float64
+
+Characteristic energy scale `ωₙ` of NRG shell `n` (last site `f_n`), in units of
+the band half-width `D`. For `WilsonLog`, `ωₙ = (1+Λ⁻¹)/2 · Λ^{-(n-1)/2}` (the
+standard NRG scale; Bulla, Costi & Pruschke, RMP 80, 395 (2008)). The temperature
+of shell `n` is `Tₙ = ωₙ / β̄` for a dimensionless `β̄ ~ 1`.
+"""
+shell_scale(disc::WilsonLog, n::Integer) = (1 + disc.Λ^(-1)) / 2 * disc.Λ^(-(n - 1) / 2)
+
+"""
     hybridization(model::AndersonModel, ω) -> Float64
 
 Hybridization function `Δ(ω) = πρ|V(ω)|²` of the bath. For the flat band of

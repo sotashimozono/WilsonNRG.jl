@@ -249,12 +249,17 @@ on it.
 
 - `chain::WilsonChain`       — the bath used
 - `algorithm::NRGAlgorithm`  — the scheme configuration
-- `energies::Vector{Vector{Float64}}` — rescaled eigenvalues kept at each iteration
+- `energies::Vector{Vector{Float64}}` — rescaled, ground-subtracted eigenvalues kept at each iteration
 - `kept::Vector{Int}`        — number of states kept per iteration
+- `levels::Vector{Vector{Tuple{Float64,Int}}}` — per iteration, the kept `(energy, 2Sₙ)` pairs
+  (the quantum-number-resolved spectrum the thermodynamics/spectral layers consume)
+- `scale::Vector{Float64}`   — `ωₙ`, the characteristic energy (shell) scale of each iteration
 """
 struct NRGResult
     chain::WilsonChain
     algorithm::NRGAlgorithm
     energies::Vector{Vector{Float64}}
     kept::Vector{Int}
+    levels::Vector{Vector{Tuple{Float64,Int}}}
+    scale::Vector{Float64}
 end
