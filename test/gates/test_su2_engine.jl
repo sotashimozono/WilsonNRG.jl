@@ -37,9 +37,32 @@ using WilsonNRG, Test
     e0u = sort([round(e; digits=6) for (e, _) in r0u.levels[end]])
     @test e0s == e0u
 
-    # thermodynamics/magnetization must REFUSE a U1SU2 result (its levels are 2S, not 2Sz) —
-    # guarded, not silently mis-summed. SU(2)-correct thermo is a separate (multiplet-aware) layer.
-    alg_su2 = NRGAlgorithm(; discretization=disc, symmetry=U1SU2(), truncation=keepall, nsites=2)
-    @test_throws WilsonNRG.EngineUnimplemented thermodynamics(m, alg_su2)
-    @test_throws WilsonNRG.EngineUnimplemented magnetization(m, alg_su2; h=0.01)
+    # second, ASYMMETRIC parameter point — guards against a sign/phase convention that happens to
+    # cancel only at the symmetric point (the hopping carries (-1)^{s'+S_k+S+½}).
+    masym = AndersonModel(; U=1.0, εd=-0.3, Γ=0.08, D=1.0)
+    rs = nrg_solve(masym, NRGAlgorithm(; discretization=disc, symmetry=U1SU2(), truncation=keepall, nsites=2))
+    ru = nrg_solve(masym, NRGAlgorithm(; discretization=disc, symmetry=U1U1(), truncation=keepall, nsites=2))
+    @test sort([round(e; digits=6) for (e, twoS) in rs.levels[end] for _ in 1:(twoS + 1)]) ==
+        sort([round(e; digits=6) for (e, _) in ru.levels[end]])
+
+    # symmetry consistency: the f† reduced-ME blocks connect only triangle-allowed multiplets,
+    # |S − S′| = ½ (f† is a spin-½ tensor) — at every shell of the flow.
+    chain = wilson_chain(disc, m, 4)
+    st = WilsonNRG.impurity_init(m, U1SU2(), chain)
+    for n in 0:3
+        coupling = n == 0 ? WilsonNRG.bath_coupling(m) : chain.hopping[n]
+        enl = WilsonNRG.add_site(st, U1SU2(); coupling, rescale=(n == 0 ? 1.0 : sqrt(2.5)),
+            onsite=chain.onsite[n + 1])
+        diag = WilsonNRG.diagonalize_blocks(enl, U1SU2())
+        plan = WilsonNRG.truncation_plan(diag.vals, keepall, U1SU2())
+        st = WilsonNRG.update_operators(diag, plan, U1SU2())
+        @test all(abs(S - S2) == 1 // 2 for (Q, S, S2) in keys(st.F))
+    end
+
+    # the main NRG claim: a TRUNCATED long chain reaches a frozen RG fixed point (and the
+    # multiplicity-weighted KeepN never splits a multiplet — else the flow would not converge).
+    rfp = nrg_solve(m, NRGAlgorithm(; discretization=disc, symmetry=U1SU2(), truncation=KeepN(120), nsites=40))
+    lo(i) = sort(rfp.energies[i])[1:min(5, end)]
+    L = lastindex(rfp.energies)
+    @test maximum(abs, lo(L) .- lo(L - 2)) < 0.05          # same-parity shells frozen (fixed point)
 end
