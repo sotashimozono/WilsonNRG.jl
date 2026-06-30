@@ -36,7 +36,7 @@ export KeepN, EnergyCut
 # --- core objects + driver ---
 export WilsonChain, NRGAlgorithm, NRGResult, EngineUnimplemented
 export wilson_chain, asymptotic_hopping, hybridization, bath_coupling, nrg_solve, spectral
-export shell_scale, thermodynamics
+export shell_scale, thermodynamics, magnetization
 
 include("bootstrap.jl")
 include("types.jl")

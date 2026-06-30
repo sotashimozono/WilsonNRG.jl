@@ -92,3 +92,46 @@ function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar
     end
     return (; T, S_imp, Tχ_imp)
 end
+
+# ⟨Sz⟩ of one shell in a field whose dimensionless Zeeman coefficient (β̄·h/ωₙ) multiplies Sz=D/2.
+function _shell_mag(levels::Vector{Tuple{Float64,Int}}, β::Real, zeeman::Real)
+    Z = 0.0
+    M = 0.0
+    for (e, twoSz) in levels
+        w = exp(-β * e + zeeman * (twoSz / 2))
+        Z += w
+        M += (twoSz / 2) * w
+    end
+    return M / Z
+end
+
+"""
+    magnetization(model, alg; h, betabar = 1.0) -> (; T, M_imp)
+
+Impurity magnetization `M_imp(T) = ⟨Sz⟩_full − ⟨Sz⟩_bath` in a uniform field `h`
+(in units of the band half-width; `g μ_B = 1`), across the NRG flow. Because the
+field `−h·Sz` commutes with `H` (Sz is conserved), it is applied *exactly* in the
+Boltzmann weights of the zero-field spectrum — no re-diagonalization needed.
+
+Limits (symmetric Anderson): a free local moment gives `M_imp → ½ tanh(h/2T)`
+(saturating to `½` as `T→0`), and the linear response `∂M_imp/∂h|₀ = χ_imp`
+reproduces the fluctuation susceptibility from [`thermodynamics`](@ref)
+(fluctuation–dissipation). Use an `EnergyCut` truncation (see this file's note).
+"""
+function magnetization(
+    model::AbstractImpurityModel, alg::NRGAlgorithm; h::Real, betabar::Real=1.0
+)
+    full = nrg_solve(model, alg)
+    bath = bath_reference(model, alg)
+    T = Float64[]
+    M_imp = Float64[]
+    for k in 1:(alg.nsites - 1)
+        ω = full.scale[k + 1]                          # = bath.scale[k] (aligned on site f_k)
+        zeeman = betabar * h / ω                       # β̄·(h/ωₙ), the dimensionless Zeeman shift
+        mf = _shell_mag(full.levels[k + 1], betabar, zeeman)
+        mb = _shell_mag(bath.levels[k], betabar, zeeman)
+        push!(T, ω / betabar)
+        push!(M_imp, mf - mb)
+    end
+    return (; T, M_imp)
+end
