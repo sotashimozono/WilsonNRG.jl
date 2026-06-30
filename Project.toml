@@ -1,7 +1,12 @@
 name = "WilsonNRG"
 uuid = "a92edc93-45ef-4f47-9db6-5fadb6770817"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["sota shimozono <shimozono-sota631@g.ecc.u-tokyo.ac.jp>"]
+
+[compat]
+Aqua = "0.8"
+Test = "1"
+julia = "1.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
