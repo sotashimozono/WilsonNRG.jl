@@ -36,4 +36,17 @@ using WilsonNRG, Test
     A_at(x) = A[argmin(abs.(ω .- x))]
     @test A_at(Γ) > 1.0                                         # substantial weight at ω~Γ
     @test A_at(Γ) > 5 * A_at(1.0)                               # ≫ band-edge weight (resonance)
+
+    # ---- (4) U>0 interacting regime — the cited methods' actual target (U=0 is free).
+    # Sum rule (completeness, broadening-independent) + p-h symmetry must survive interactions;
+    # p-h also guards the degenerate-GS seed (the odd-parity Kondo doublet must be split, not picked).
+    @testset "CFS at U>0 (symmetric point)" begin
+        U = 0.5
+        mU = AndersonModel(; U, εd=-U / 2, Γ, D=1.0)
+        rU = spectral(CFS(), mU, alg)
+        ωU, AU = rU.ω, rU.A
+        @test isapprox(trapz(ωU, AU), 1.0; atol=0.05)           # sum rule survives interactions (≈1.003)
+        npU = length(ωU) ÷ 2
+        @test maximum(abs, AU[(npU + 1):end] .- reverse(AU[1:npU])) < 1.0e-3 * maximum(AU)  # p-h (≈1e-5)
+    end
 end

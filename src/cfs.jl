@@ -91,18 +91,19 @@ function _cfs_reduced_dms(shells::Vector{_CFSShell})
     N = length(shells)
     ρ = Vector{Dict{NTuple{2,Int},Vector{Float64}}}(undef, N)
     last = shells[N]
-    gqn = first(keys(last.plan))
-    gE = Inf
-    gpos = 1
-    for (qn, idx) in last.plan, (p, i) in enumerate(idx)
-        if last.vals[qn][i] < gE
-            gE = last.vals[qn][i]
-            gqn = qn
-            gpos = p
-        end
-    end
+    gE = minimum(minimum(last.vals[qn][idx]) for (qn, idx) in last.plan)
     ρ[N] = Dict(qn => zeros(length(idx)) for (qn, idx) in last.plan)
-    ρ[N][gqn][gpos] = 1.0
+    # Split unit weight over the (possibly degenerate) ground multiplet — the T→0⁺ average.
+    # A strict-min single pick would be Dict-order-dependent when the ground state is
+    # degenerate (e.g. the odd-parity Kondo doublet at U>0); per-spin sum rules survive
+    # either way, but the split is deterministic and gives the correct degenerate average.
+    gstates = [
+        (qn, p) for (qn, idx) in last.plan for
+        (p, i) in enumerate(idx) if isapprox(last.vals[qn][i], gE; atol=1e-9)
+    ]
+    for (qn, p) in gstates
+        ρ[N][qn][p] = 1.0 / length(gstates)
+    end
     for n in (N - 1):-1:1
         child = shells[n + 1]
         ρn = Dict(qn => zeros(length(idx)) for (qn, idx) in shells[n].plan)
@@ -144,7 +145,7 @@ function _cfs_poles(shells::Vector{_CFSShell}, ρ, σ::Int)
             Ob = sh.Ofull[(Q, D, σ)]                                 # ⟨tgt|d†_σ|qn⟩
             for (kp, ki) in enumerate(idx)
                 w0 = ρ[n][qn][kp]
-                w0 == 0.0 && continue
+                w0 < 1.0e-15 && continue
                 Ek = sh.vals[qn][ki]
                 for s in 1:length(sh.vals[tgt])
                     final(tgt, s) || continue
@@ -162,7 +163,7 @@ function _cfs_poles(shells::Vector{_CFSShell}, ρ, σ::Int)
             Ob = sh.Ofull[(Q, D, σ)]
             for (kp, ki) in enumerate(sh.plan[tgt])
                 w0 = ρ[n][tgt][kp]
-                w0 == 0.0 && continue
+                w0 < 1.0e-15 && continue
                 Ek = sh.vals[tgt][ki]
                 for s in 1:length(sh.vals[qn])
                     final(qn, s) || continue
