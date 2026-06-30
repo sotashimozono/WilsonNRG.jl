@@ -15,8 +15,10 @@
 #  states, and the free-spin plateaus (T·χ_imp = 1/4, S_imp = ln2) reproduce.
 # ===========================================================================
 
-# Canonical thermodynamics of one shell from its (energy, 2Sₙ) levels at β̄.
-function _shell_thermo(levels::Vector{Tuple{Float64,Int}}, β::Real)
+# Canonical thermodynamics of one shell from its (energy, label) levels at β̄. The label and the
+# weighting are symmetry-dependent: for `U1U1` each entry is one state (label = 2Sz); for `U1SU2`
+# each is a (2S+1)-fold multiplet (label = 2S, with ⟨Sz²⟩ summed over members = (2S+1)·S(S+1)/3).
+function _shell_thermo(levels, β::Real, ::U1U1)
     Z = 0.0
     Eav = 0.0
     Sz2 = 0.0
@@ -26,8 +28,23 @@ function _shell_thermo(levels::Vector{Tuple{Float64,Int}}, β::Real)
         Eav += e * w
         Sz2 += (twoSz / 2)^2 * w
     end
-    Ē = Eav / Z
-    return (S=β * Ē + log(Z), χT=Sz2 / Z)   # S in units k_B=1; χT = ⟨Sz²⟩ (gμ_B=1, ⟨Sz⟩=0)
+    return (S=β * (Eav / Z) + log(Z), χT=Sz2 / Z)   # χT = ⟨Sz²⟩ (gμ_B=1, ⟨Sz⟩=0)
+end
+function _shell_thermo(levels, β::Real, ::U1SU2)
+    Z = 0.0
+    Eav = 0.0
+    Sz2 = 0.0
+    for (e, twoS) in levels
+        S = twoS / 2
+        w = (twoS + 1) * exp(-β * e)                # 2S+1 degenerate states in the multiplet
+        Z += w
+        Eav += e * w
+        Sz2 += S * (S + 1) / 3 * w                  # Σ_{Sz=-S}^{S} Sz² = (2S+1)·S(S+1)/3
+    end
+    return (S=β * (Eav / Z) + log(Z), χT=Sz2 / Z)
+end
+function _shell_thermo(levels, β::Real, sym::AbstractSymmetry)
+    throw(EngineUnimplemented("thermodynamics not implemented for $(typeof(sym))"))
 end
 
 _free_site(::AndersonModel) = AndersonModel(; U=0.0, εd=0.0, Γ=0.0, D=1.0)
@@ -78,13 +95,7 @@ Use `alg.truncation = EnergyCut(...)` (see the note in this file): a fixed `Keep
 under-resolves the impurity-doubled run and the local-moment plateau undershoots.
 """
 function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar::Real=1.0)
-    alg.symmetry isa U1U1 || throw(
-        EngineUnimplemented(
-            "thermodynamics needs U1U1 (got $(typeof(alg.symmetry))): the (energy, 2S) " *
-            "multiplet levels of non-abelian symmetries need a multiplet-aware shell sum " *
-            "(2S+1 degeneracy + ⟨Sz²⟩=S(S+1)/3), not the per-state 2Sz form used here.",
-        ),
-    )
+    sym = alg.symmetry                                  # selects the shell-sum (per-state vs multiplet)
     full = nrg_solve(model, alg)
     bath = bath_reference(model, alg)
     T = Float64[]
@@ -95,8 +106,8 @@ function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar
     # f_{bath_sites_in_init(model)}, so full.levels[k+1-off] ends on f_k.
     off = bath_sites_in_init(model)
     for k in 1:(alg.nsites - 1)
-        ft = _shell_thermo(full.levels[k + 1 - off], betabar)
-        bt = _shell_thermo(bath.levels[k], betabar)
+        ft = _shell_thermo(full.levels[k + 1 - off], betabar, sym)
+        bt = _shell_thermo(bath.levels[k], betabar, sym)
         push!(T, full.scale[k + 1 - off] / betabar)
         push!(S_imp, ft.S - bt.S)
         push!(Tχ_imp, ft.χT - bt.χT)
@@ -105,7 +116,7 @@ function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar
 end
 
 # ⟨Sz⟩ of one shell in a field whose dimensionless Zeeman coefficient (β̄·h/ωₙ) multiplies Sz=D/2.
-function _shell_mag(levels::Vector{Tuple{Float64,Int}}, β::Real, zeeman::Real)
+function _shell_mag(levels, β::Real, zeeman::Real, ::U1U1)
     Z = 0.0
     M = 0.0
     for (e, twoSz) in levels
@@ -114,6 +125,22 @@ function _shell_mag(levels::Vector{Tuple{Float64,Int}}, β::Real, zeeman::Real)
         M += (twoSz / 2) * w
     end
     return M / Z
+end
+function _shell_mag(levels, β::Real, zeeman::Real, ::U1SU2)
+    Z = 0.0
+    M = 0.0
+    for (e, twoS) in levels
+        for twoSz in (-twoS):2:twoS                 # the field resolves the 2S+1 multiplet members
+            Sz = twoSz / 2
+            w = exp(-β * e + zeeman * Sz)
+            Z += w
+            M += Sz * w
+        end
+    end
+    return M / Z
+end
+function _shell_mag(levels, β::Real, zeeman::Real, sym::AbstractSymmetry)
+    throw(EngineUnimplemented("magnetization not implemented for $(typeof(sym))"))
 end
 
 """
@@ -132,12 +159,7 @@ reproduces the fluctuation susceptibility from [`thermodynamics`](@ref)
 function magnetization(
     model::AbstractImpurityModel, alg::NRGAlgorithm; h::Real, betabar::Real=1.0
 )
-    alg.symmetry isa U1U1 || throw(
-        EngineUnimplemented(
-            "magnetization needs U1U1 (got $(typeof(alg.symmetry))): non-abelian (energy, 2S) " *
-            "levels need a multiplet-aware Zeeman sum over Sz=-S..S, not the per-state form here.",
-        ),
-    )
+    sym = alg.symmetry
     full = nrg_solve(model, alg)
     bath = bath_reference(model, alg)
     T = Float64[]
@@ -146,8 +168,8 @@ function magnetization(
     for k in 1:(alg.nsites - 1)
         ω = full.scale[k + 1 - off]                    # = bath.scale[k] (aligned on site f_k)
         zeeman = betabar * h / ω                       # β̄·(h/ωₙ), the dimensionless Zeeman shift
-        mf = _shell_mag(full.levels[k + 1 - off], betabar, zeeman)
-        mb = _shell_mag(bath.levels[k], betabar, zeeman)
+        mf = _shell_mag(full.levels[k + 1 - off], betabar, zeeman, sym)
+        mb = _shell_mag(bath.levels[k], betabar, zeeman, sym)
         push!(T, ω / betabar)
         push!(M_imp, mf - mb)
     end
