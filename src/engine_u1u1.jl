@@ -201,3 +201,41 @@ function update_operators(diag::U1U1Diag, plan::Dict{NTuple{2,Int},Vector{Int}},
     end
     return U1U1State(Enew, Fnew)
 end
+
+"""
+    propagate_operator(O, diag, plan, sym) -> O′
+
+Carry a charge-raising local operator forward one shell. `O[(Q,D,σd)] = ⟨Q+1,D+σd|O|Q,D⟩`
+(e.g. the impurity creation `d†_σ`). Unlike the last-site `f†` (which `update_operators`
+rebuilds on the NEW site), this operator acts on the retained (parent) space and is leftmost
+(the impurity), so it carries **no** Jordan–Wigner sign and gets no new-site term — it is
+simply rotated into the new kept eigenbasis. Used by the spectral layer to track `d†` along
+the flow. Mirror of the `update_operators` rotation `Vₜ' · M · V`.
+"""
+function propagate_operator(
+    O::Dict{NTuple{3,Int},Matrix{Float64}},
+    diag::U1U1Diag,
+    plan::Dict{NTuple{2,Int},Vector{Int}},
+    ::U1U1,
+)
+    Vk = Dict(qn => diag.vecs[qn][:, idx] for (qn, idx) in plan)
+    Onew = Dict{NTuple{3,Int},Matrix{Float64}}()
+    for (qn, segs) in diag.seg
+        haskey(Vk, qn) || continue
+        Q, D = qn
+        for σ in (1, -1)
+            tgt = (Q + 1, D + σ)
+            haskey(Vk, tgt) || continue
+            M = zeros(Float64, size(diag.vecs[tgt], 1), size(diag.vecs[qn], 1))
+            tgtseg = Dict((p, s) => r for (p, s, r) in diag.seg[tgt])
+            for (P, s, r) in segs
+                P′ = (P[1] + 1, P[2] + σ)
+                (haskey(O, (P[1], P[2], σ)) && haskey(tgtseg, (P′, s))) || continue
+                M[tgtseg[(P′, s)], r] = O[(P[1], P[2], σ)]   # d† on the parent, same local s
+            end
+            blk = transpose(Vk[tgt]) * M * Vk[qn]
+            iszero(blk) || (Onew[(Q, D, σ)] = blk)
+        end
+    end
+    return Onew
+end

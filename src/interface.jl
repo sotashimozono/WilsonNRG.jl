@@ -198,17 +198,5 @@ function nrg_solve(model::AbstractImpurityModel, alg::NRGAlgorithm)
     return NRGResult(chain, alg, energies, kept, levels, scale)
 end
 
-# ---- spectral layer (Axis 4) ----------------------------------------------
-
-"""
-    spectral(method::AbstractSpectralMethod, result::NRGResult, op) -> (ω, A)
-
-Impurity spectral function from an NRG flow under formulation `method`
-(Axis 4). Implemented per method from Stage 3 (`FDM` first).
-"""
-function spectral end
-function spectral(method::AbstractSpectralMethod, ::NRGResult, op)
-    throw(
-        EngineUnimplemented("spectral via $(typeof(method)) — roadmap Stage 3 (FDM first).")
-    )
-end
+# The dynamical layer (green_function / spectral / self_energy, Axis 4) is in
+# src/spectral.jl and src/self_energy.jl.

@@ -159,19 +159,47 @@ struct SU2SU2 <: AbstractSymmetry end
 """
     AbstractSpectralMethod
 
-Supertype of spectral-function formulations consuming an [`NRGResult`](@ref) via
-[`spectral`](@ref).
+Supertype of spectral-function formulations (Axis 4a): each builds the impurity
+Green's function `G(ω)` via [`green_function`](@ref), from which `A(ω) = -Im G/π`
+([`spectral`](@ref)) and the self-energy follow. Diverse methods exist because
+getting `A(ω)`/`Σ(ω)` accurately is hard — they are meant to be **compared**
+([`compare_self_energy`](@ref)); the robust choice is [`default_spectral_method`](@ref).
 """
 abstract type AbstractSpectralMethod end
 
-"`BHP` — Bulla–Hewson–Pruschke spectral patching (Bulla et al. 1998). Planned (Stage 4)."
+"`BHP` — Bulla–Hewson–Pruschke T=0 spectral patching (PRB 57, 10287 (1998)). **Implemented.**"
 struct BHP <: AbstractSpectralMethod end
-"`DMNRG` — density-matrix NRG (Hofstetter, PRL 85, 1508 (2000)). Planned (Stage 4)."
+"`DMNRG` — density-matrix NRG (Hofstetter, PRL 85, 1508 (2000)). **Planned** (comparison target)."
 struct DMNRG <: AbstractSpectralMethod end
-"`CFS` — complete-Fock-space / TDNRG (Anders & Schiller, PRL 95, 196801 (2005)). Planned (Stage 4)."
+"`CFS` — complete-Fock-space / TDNRG (Anders & Schiller, PRL 95, 196801 (2005)). **Planned**."
 struct CFS <: AbstractSpectralMethod end
-"`FDM` — full-density-matrix, sum-rule conserving (Weichselbaum & von Delft, PRL 99, 076402 (2007)). Target of Stage 3."
+"`FDM` — full-density-matrix, sum-rule conserving (Weichselbaum & von Delft, PRL 99, 076402 (2007)). **Planned** (robust default-to-be)."
 struct FDM <: AbstractSpectralMethod end
+
+"""
+    AbstractSelfEnergyMethod
+
+Supertype of self-energy formulations (Axis 4b): how `Σ(ω)` is extracted from the
+Green's function. The choice matters for accuracy — see [`compare_self_energy`](@ref).
+"""
+abstract type AbstractSelfEnergyMethod end
+
+"""
+    SelfEnergyTrick() <: AbstractSelfEnergyMethod
+
+`Σ_σ = U · F_σ / G_σ` with `F_σ = ⟨⟨d_σ n_{-σ}; d†_σ⟩⟩` (Bulla–Hewson–Pruschke,
+PRB 57, 10287 (1998)). **Robust** — `Σ ∝ U` (exact `0` at `U=0`) and `F/G` shares
+poles/broadening so errors largely cancel. The default ([`default_self_energy_method`](@ref)).
+"""
+struct SelfEnergyTrick <: AbstractSelfEnergyMethod end
+
+"""
+    Dyson() <: AbstractSelfEnergyMethod
+
+`Σ_σ = ω - ε_d - Δ(ω) - 1/G_σ(ω)`. Simple, but broadening errors in `G` are
+amplified by `1/G`; provided mainly as a comparison baseline.
+"""
+struct Dyson <: AbstractSelfEnergyMethod end
 
 # ---------------------------------------------------------------------------
 # Truncation policy
