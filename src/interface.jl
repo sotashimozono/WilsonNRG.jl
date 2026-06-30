@@ -138,6 +138,17 @@ end
 # ---- the scheme ------------------------------------------------------------
 
 """
+    bath_sites_in_init(model) -> Int
+
+How many bath (Wilson-chain) orbitals `impurity_init` already incorporates. `0`
+for models whose init is the impurity alone (Anderson — `add_site` then attaches
+`f₀` with coupling `V₀`); `1` for models whose impurity is exchange-coupled to
+`f₀` inside the init (Kondo — the first attach is `f₁`). Lets `nrg_solve` stay
+model-generic.
+"""
+bath_sites_in_init(::AbstractImpurityModel) = 0
+
+"""
     nrg_solve(model::AbstractImpurityModel, alg::NRGAlgorithm) -> NRGResult
 
 Run the generic NRG scheme: discretize the bath, then iteratively enlarge,
@@ -167,7 +178,7 @@ function nrg_solve(model::AbstractImpurityModel, alg::NRGAlgorithm)
     levels = Vector{Vector{Tuple{Float64,Int}}}()
     scale = Float64[]
     kept = Int[]
-    for n in 0:(alg.nsites - 1)
+    for n in bath_sites_in_init(model):(alg.nsites - 1)
         coupling = n == 0 ? bath_coupling(model) : chain.hopping[n]
         rescale = n == 0 ? 1.0 : sqrtΛ
         enl = add_site(state, sym; coupling, rescale, onsite=chain.onsite[n + 1])
