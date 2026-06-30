@@ -8,11 +8,10 @@
 #  only the initial Hamiltonian, the chain parameters and the single-site
 #  operator matrices are model-specific).
 #
-#  The deterministic seams (`wilson_chain`, `truncate_spectrum`) are implemented.
-#  The many-body seams (`impurity_init`, `add_site`, `diagonalize_blocks`,
-#  `update_operators`) are declared here and land per the staged roadmap, each
-#  behind its own faithfulness gate. Calling the engine before they exist raises
-#  a clear [`EngineUnimplemented`](@ref) rather than a cryptic `MethodError`.
+#  The deterministic seams (`wilson_chain`, `truncation_plan`) and the many-body
+#  seams (`impurity_init`, `add_site`, `diagonalize_blocks`, `update_operators`)
+#  are implemented for `U1U1`; symmetries without a wired layer raise a clear
+#  [`EngineUnimplemented`](@ref) rather than a cryptic `MethodError`.
 # ===========================================================================
 
 """

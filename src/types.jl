@@ -180,7 +180,7 @@ struct FDM <: AbstractSpectralMethod end
 """
     AbstractTruncation
 
-Per-iteration state-keeping policy consumed by [`truncate_spectrum`](@ref).
+Per-iteration state-keeping policy consumed by [`truncation_plan`](@ref).
 """
 abstract type AbstractTruncation end
 
