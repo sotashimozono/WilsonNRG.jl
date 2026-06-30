@@ -9,12 +9,17 @@
 #
 #  Built programmatically (8-state spin⊗f₀, explicit operators → block-diagonalize
 #  → rotate f†₀) rather than hand-derived, so the Clebsch-Gordan / fermion-sign
-#  bookkeeping is generated, not transcribed. The impurity spin carries no charge
-#  and commutes with the conduction fermions ⇒ no Jordan–Wigner sign on f₀ here.
+#  bookkeeping is generated, not transcribed. No Jordan–Wigner string appears on f₀
+#  because the impurity carries no charge (Q_imp = 0 ⇒ (−1)^{Q_imp} = 1); the only
+#  fermionic signs are the single-site ones inside `_CREATE` (the |↑↓⟩ = c†↑c†↓|0⟩
+#  ordering).
 # ===========================================================================
 
-function impurity_init(m::KondoModel, ::U1U1, ::WilsonChain)
+using LinearAlgebra: issymmetric
+
+function impurity_init(m::KondoModel, ::U1U1, chain::WilsonChain)
     J = m.J
+    ε0 = chain.onsite[1]                                 # f₀ on-site energy (0 for a symmetric flat band)
     # product basis |imp ⊗ f₀⟩: imp a ∈ {1:⇑(2Sz=+1), 2:⇓(2Sz=-1)}, f₀ s ∈ 1:4 (|0⟩|↑⟩|↓⟩|↑↓⟩)
     twoSz_imp = (1, -1)
     idx(a, s) = (a - 1) * 4 + s                          # flat 1..8
@@ -23,17 +28,18 @@ function impurity_init(m::KondoModel, ::U1U1, ::WilsonChain)
         push!(qd, (_LOC_Q[s], twoSz_imp[a] + _LOC_D[s]))  # (Q, 2Sz_total) of each product state
     end
 
-    # ---- H = J [ Sz_imp·sz_{f₀} + ½(S⁺_imp s⁻_{f₀} + S⁻_imp s⁺_{f₀}) ] as an 8×8 ----
+    # ---- H = ε₀ n_{f₀} + J [ Sz_imp·sz_{f₀} + ½(S⁺_imp s⁻_{f₀} + S⁻_imp s⁺_{f₀}) ] as an 8×8 ----
     H = zeros(Float64, 8, 8)
     szf0 = (0.0, 0.5, -0.5, 0.0)                          # sz of |0⟩,|↑⟩,|↓⟩,|↑↓⟩
     for a in 1:2, s in 1:4
-        H[idx(a, s), idx(a, s)] += J * (twoSz_imp[a] / 2) * szf0[s]   # Sz·sz (diagonal)
+        H[idx(a, s), idx(a, s)] += ε0 * _LOC_Q[s] + J * (twoSz_imp[a] / 2) * szf0[s]  # ε₀n + Sz·sz
     end
     # spin flips on the f₀ singly-occupied states: s⁻: |↑⟩(2)→|↓⟩(3); s⁺: |↓⟩(3)→|↑⟩(2)
     # S⁺_imp: ⇓(2)→⇑(1);  S⁻_imp: ⇑(1)→⇓(2)
     H[idx(1, 3), idx(2, 2)] += J / 2                      # S⁺_imp s⁻_{f₀}: |⇓↑⟩→|⇑↓⟩
     H[idx(2, 2), idx(1, 3)] += J / 2                      # h.c.
-    H[idx(2, 2), idx(1, 3)] == H[idx(1, 3), idx(2, 2)] || error("Kondo H not symmetric")
+    issymmetric(H) ||
+        error("Kondo init Hamiltonian not symmetric (max |H−Hᵀ| sign/factor bug)")
 
     # ---- c†_{f₀σ} as 8×8 (imp identity ⊗ single-site creation; no JW sign on a spin) ----
     Cdag = Dict(σd => zeros(Float64, 8, 8) for (σd, _) in _CREATE)
@@ -65,6 +71,9 @@ function impurity_init(m::KondoModel, ::U1U1, ::WilsonChain)
             haskey(blocks, tgt) || continue
             js = blocks[tgt]
             block = transpose(V[tgt]) * Cdag[σd][js, is] * V[b]
+            # `Cdag` entries are exactly {0, ±1}, so a structurally forbidden sector is an
+            # exact zero after the orthogonal rotation — `iszero` is the right test (a
+            # tolerance would risk dropping genuine small matrix elements).
             iszero(block) || (Fdag[(Q, D, σd)] = block)
         end
     end
@@ -73,3 +82,7 @@ end
 
 # The Kondo init already contains f₀ (via S·s), so nrg_solve's first attach is f₁.
 bath_sites_in_init(::KondoModel) = 1
+
+# Bath reference for the impurity-contribution subtraction: the bare conduction chain,
+# identical to the Anderson case (the conduction band is model-independent).
+_free_site(m::KondoModel) = AndersonModel(; U=0.0, εd=0.0, Γ=0.0, D=m.D)

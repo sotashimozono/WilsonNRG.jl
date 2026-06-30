@@ -70,4 +70,21 @@ _subset(ls) = (
         @test maximum(abs, lo(lastindex(res.energies)) .- lo(lastindex(res.energies) - 2)) <
             0.05
     end
+
+    # ---- (4) thermodynamics is genuinely model-generic: Kondo screening ----
+    # The impurity is a localized spin-½ (2 states): high-T S_imp → ln2 (NOT ln4 —
+    # distinguishes it from Anderson's free orbital), then Kondo-screened to 0 at low T.
+    @testset "Kondo screening (thermodynamics reused on KondoModel)" begin
+        alg = NRGAlgorithm(;
+            discretization=WilsonLog(2.0),
+            symmetry=U1U1(),
+            truncation=EnergyCut(7.0),
+            nsites=22,
+        )
+        th = thermodynamics(KondoModel(; J=0.3), alg; betabar=1.0)
+        @test isapprox(th.S_imp[1], log(2); atol=0.05)   # high-T free spin: ln2 (2 states)
+        @test all(≤(0.27), th.Tχ_imp)                     # free moment never exceeds ~1/4
+        @test th.Tχ_imp[end] < 0.05                       # screened singlet (got ≈0.024)
+        @test th.S_imp[end] < 0.20                        # entropy quenched (got ≈0.128)
+    end
 end

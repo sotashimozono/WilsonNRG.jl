@@ -83,10 +83,14 @@ function thermodynamics(model::AbstractImpurityModel, alg::NRGAlgorithm; betabar
     T = Float64[]
     S_imp = Float64[]
     Tχ_imp = Float64[]
-    for k in 1:(alg.nsites - 1)             # full ends on f_k (index k+1); bath ends on f_k (index k)
-        ft = _shell_thermo(full.levels[k + 1], betabar)
+    # Align full and bath on the same last Wilson site f_k. The bath always records from
+    # f₁ (bath.levels[k] ends on f_k); the full run's first recorded shell ends on
+    # f_{bath_sites_in_init(model)}, so full.levels[k+1-off] ends on f_k.
+    off = bath_sites_in_init(model)
+    for k in 1:(alg.nsites - 1)
+        ft = _shell_thermo(full.levels[k + 1 - off], betabar)
         bt = _shell_thermo(bath.levels[k], betabar)
-        push!(T, full.scale[k + 1] / betabar)
+        push!(T, full.scale[k + 1 - off] / betabar)
         push!(S_imp, ft.S - bt.S)
         push!(Tχ_imp, ft.χT - bt.χT)
     end
@@ -125,10 +129,11 @@ function magnetization(
     bath = bath_reference(model, alg)
     T = Float64[]
     M_imp = Float64[]
+    off = bath_sites_in_init(model)                    # full/bath alignment (see thermodynamics)
     for k in 1:(alg.nsites - 1)
-        ω = full.scale[k + 1]                          # = bath.scale[k] (aligned on site f_k)
+        ω = full.scale[k + 1 - off]                    # = bath.scale[k] (aligned on site f_k)
         zeeman = betabar * h / ω                       # β̄·(h/ωₙ), the dimensionless Zeeman shift
-        mf = _shell_mag(full.levels[k + 1], betabar, zeeman)
+        mf = _shell_mag(full.levels[k + 1 - off], betabar, zeeman)
         mb = _shell_mag(bath.levels[k], betabar, zeeman)
         push!(T, ω / betabar)
         push!(M_imp, mf - mb)

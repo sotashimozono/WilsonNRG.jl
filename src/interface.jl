@@ -145,6 +145,11 @@ for models whose init is the impurity alone (Anderson — `add_site` then attach
 `f₀` with coupling `V₀`); `1` for models whose impurity is exchange-coupled to
 `f₀` inside the init (Kondo — the first attach is `f₁`). Lets `nrg_solve` stay
 model-generic.
+
+CONTRACT: this must agree with what `impurity_init` actually builds. A model whose
+init bakes in `f₀` MUST override this to return ≥1, otherwise `nrg_solve` attaches
+`f₀` a second time and silently double-counts a Wilson site (a convergent but wrong
+flow). The two are an unenforced pair — keep them in sync when adding a model.
 """
 bath_sites_in_init(::AbstractImpurityModel) = 0
 
@@ -157,7 +162,7 @@ diagonalize, rescale by `√Λ`, and truncate.
 ```
 chain = wilson_chain(alg.discretization, model, alg.nsites)
 state = impurity_init(model, alg.symmetry, chain)
-for n in 0:(alg.nsites - 1)                                   # attach impurity↔f₀, then f₀↔f₁, …
+for n in bath_sites_in_init(model):(alg.nsites - 1)          # n=0: impurity↔f₀ (V₀); n≥1: f↔f (ξ)
     enl  = add_site(state, alg.symmetry; coupling, rescale, onsite)   # √Λ rescale + ξ-hopping
     diag = diagonalize_blocks(enl, alg.symmetry)
     plan = truncation_plan(diag.vals, alg.truncation, alg.symmetry)
