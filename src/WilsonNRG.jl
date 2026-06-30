@@ -54,5 +54,6 @@ include("cfs.jl")
 include("fdm.jl")
 include("self_energy.jl")
 include("su2.jl")
+include("engine_u1su2.jl")
 
 end # module WilsonNRG
