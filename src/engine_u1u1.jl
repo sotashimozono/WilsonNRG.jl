@@ -159,6 +159,13 @@ function update_operators(diag::U1U1Diag, plan::Dict{NTuple{2,Int},Vector{Int}},
         Enew[qn] = diag.vals[qn][idx]
         Vk[qn] = diag.vecs[qn][:, idx]
     end
+    # Subtract the iteration ground energy (standard NRG): keeps the rescaled
+    # spectrum O(1) under √Λ iteration and avoids catastrophic cancellation in the
+    # low-energy levels on long chains. Eigenvectors / relative spectrum unchanged.
+    g = minimum(minimum, values(Enew))
+    for qn in keys(Enew)
+        Enew[qn] = Enew[qn] .- g
+    end
     Fnew = Dict{NTuple{3,Int},Matrix{Float64}}()
     for (qn, segs) in diag.seg
         haskey(Vk, qn) || continue

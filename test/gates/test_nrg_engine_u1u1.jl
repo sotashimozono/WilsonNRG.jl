@@ -50,7 +50,7 @@ function _keepall_blocks(model, Λ, nsites)
         diag = diagonalize_blocks(
             add_site(st, U1U1(); coupling, rescale, onsite=chain.onsite[n + 1]), U1U1()
         )
-        st = update_operators(diag, truncation_plan(diag.vals, KeepN(10^9)), U1U1())
+        st = update_operators(diag, truncation_plan(diag.vals, KeepN(10^9), U1U1()), U1U1())
     end
     return st.E
 end
@@ -70,7 +70,8 @@ end
             sp = _single_particle(model, wilson_chain(WilsonLog(2.5), model, 5), 5)
             ref = _subset_sums(vcat(sp, sp))                    # ↑ and ↓ spin channels
             @test length(got) == length(ref) == 4096
-            @test maximum(abs, got .- ref) < 1e-9
+            # compare relative to ground (the engine ground-subtracts each iteration)
+            @test maximum(abs, (got .- got[1]) .- (ref .- ref[1])) < 1e-9
         end
     end
 
@@ -112,8 +113,25 @@ end
         res = nrg_solve(model, alg)
         @test length(res.energies) == 35
         @test all(isfinite, reduce(vcat, res.energies))
-        @test maximum(res.kept) == 256              # hard KeepN cut; truncation actually engaged
+        @test 256 ≤ maximum(res.kept) ≤ 320         # ≥ N_keep, extended through degeneracy (no split)
         @test all(>(0), res.kept)
+        @test all(e -> minimum(e) ≈ 0, res.energies)  # ground-subtracted: each iteration starts at 0
+    end
+
+    # ---- RG flow reaches a fixed point (hallmark of NRG; also exercises the
+    #      ground-subtraction numerical-stability fix on a long chain) ----
+    @testset "RG flow reaches a fixed point" begin
+        model = AndersonModel(; U=0.5, εd=-0.25, Γ=0.04, D=1.0)
+        alg = NRGAlgorithm(;
+            discretization=WilsonLog(2.5), symmetry=U1U1(), truncation=KeepN(300), nsites=50
+        )
+        res = nrg_solve(model, alg)
+        @test all(isfinite, reduce(vcat, res.energies))
+        @test maximum(res.energies[end]) < 100          # rescaled spectrum O(1): no √Λ^N blow-up
+        lo(n) = sort(res.energies[n])[1:6]
+        # same-parity late iterations ⇒ the rescaled low-energy spectrum is frozen
+        @test maximum(abs, lo(lastindex(res.energies)) .- lo(lastindex(res.energies) - 2)) <
+            0.05
     end
 
     # ---- unwired symmetry fails honestly ----

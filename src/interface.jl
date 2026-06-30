@@ -72,44 +72,65 @@ function impurity_init(m::AbstractImpurityModel, s::AbstractSymmetry, ::WilsonCh
     )
 end
 
-# ---- truncation (generic, symmetry-agnostic) ------------------------------
+# ---- truncation (symmetry-aware via the `multiplicity` hook) --------------
 
 """
-    truncate_spectrum(energies, trunc::AbstractTruncation) -> keep::Vector{Int}
+    multiplicity(sym::AbstractSymmetry, qn) -> Int
 
-Indices of the states to retain, given the iteration's rescaled `energies`.
-Symmetry-agnostic; the block bookkeeping is the symmetry layer's job.
+Number of physical states represented by one kept eigenvalue of block `qn`. For
+abelian symmetries each `(Q, Sₙ)` state counts once (`1`); a non-abelian symmetry
+overrides this with the multiplet dimension (e.g. `2S+1`) so a `KeepN` budget
+counts physical states. This is the hook that lets [`truncation_plan`](@ref)
+extend to SU(2)-graded blocks unchanged.
 """
-function truncate_spectrum(energies::AbstractVector{<:Real}, trunc::KeepN)
-    order = sortperm(energies)
-    return order[1:min(trunc.N, length(order))]
-end
-function truncate_spectrum(energies::AbstractVector{<:Real}, trunc::EnergyCut)
-    return findall(≤(trunc.Ecut), energies)
-end
+multiplicity(::AbstractSymmetry, qn) = 1
 
 """
-    truncation_plan(vals::Dict{K,Vector{Float64}}, trunc) -> Dict{K,Vector{Int}}
+    truncation_plan(vals::Dict{K,Vector{Float64}}, trunc, sym) -> Dict{K,Vector{Int}}
 
-Apply a truncation policy *across* symmetry blocks: flatten the per-block
-energies, pick the global survivors via [`truncate_spectrum`](@ref), and map them
-back to per-block kept indices. Symmetry-agnostic — any block-labelled spectrum
-works, so a new symmetry reuses it unchanged.
+Choose which states to keep *across* symmetry blocks from each block's energies.
+
+- **Degeneracy-aware**: never splits a (near-)degenerate cluster, so exact
+  degeneracies (e.g. spin-flip partners) and spectral sum rules survive truncation.
+- **Multiplicity-weighted** via [`multiplicity`](@ref): a `KeepN` budget counts
+  physical states, so SU(2)-graded blocks work with no change here.
+
+Symmetry-agnostic otherwise — a new symmetry reuses it by defining `multiplicity`.
 """
-function truncation_plan(vals::Dict{K,Vector{Float64}}, trunc::AbstractTruncation) where {K}
-    flat = Float64[]
-    owner = Tuple{K,Int}[]
-    for (q, ev) in vals, (i, e) in enumerate(ev)
-        push!(flat, e)
-        push!(owner, (q, i))
+function truncation_plan(
+    vals::Dict{K,Vector{Float64}}, trunc::KeepN, sym::AbstractSymmetry
+) where {K}
+    entries = Tuple{Float64,K,Int,Int}[]                 # (energy, qn, index, weight)
+    for (q, ev) in vals
+        w = multiplicity(sym, q)
+        for (i, e) in enumerate(ev)
+            push!(entries, (e, q, i, w))
+        end
     end
+    sort!(entries; by=first)
     plan = Dict{K,Vector{Int}}()
-    for k in truncate_spectrum(flat, trunc)
-        q, i = owner[k]
+    cum = 0
+    for (k, (e, q, i, w)) in enumerate(entries)
         push!(get!(plan, q, Int[]), i)
+        cum += w
+        # keep ≥ N physical states, then extend through any (near-)degenerate cluster
+        if cum ≥ trunc.N &&
+            (k == length(entries) || !isapprox(entries[k + 1][1], e; atol=1e-9))
+            break
+        end
     end
     for q in keys(plan)
         sort!(plan[q])
+    end
+    return plan
+end
+function truncation_plan(
+    vals::Dict{K,Vector{Float64}}, trunc::EnergyCut, ::AbstractSymmetry
+) where {K}
+    plan = Dict{K,Vector{Int}}()
+    for (q, ev) in vals
+        idx = findall(≤(trunc.Ecut), ev)
+        isempty(idx) || (plan[q] = idx)
     end
     return plan
 end
@@ -128,8 +149,8 @@ state = impurity_init(model, alg.symmetry, chain)
 for n in 0:(alg.nsites - 1)                                   # attach impurity↔f₀, then f₀↔f₁, …
     enl  = add_site(state, alg.symmetry; coupling, rescale, onsite)   # √Λ rescale + ξ-hopping
     diag = diagonalize_blocks(enl, alg.symmetry)
-    plan = truncation_plan(diag.vals, alg.truncation)
-    state = update_operators(diag, plan, alg.symmetry)
+    plan = truncation_plan(diag.vals, alg.truncation, alg.symmetry)
+    state = update_operators(diag, plan, alg.symmetry)   # subtracts the ground energy
 end
 ```
 
@@ -148,11 +169,11 @@ function nrg_solve(model::AbstractImpurityModel, alg::NRGAlgorithm)
         rescale = n == 0 ? 1.0 : sqrtΛ
         enl = add_site(state, sym; coupling, rescale, onsite=chain.onsite[n + 1])
         diag = diagonalize_blocks(enl, sym)
-        plan = truncation_plan(diag.vals, alg.truncation)
-        spec = sort!(reduce(vcat, (diag.vals[q][plan[q]] for q in keys(plan))))
+        plan = truncation_plan(diag.vals, alg.truncation, sym)
+        state = update_operators(diag, plan, sym)        # truncates + subtracts ground energy
+        spec = sort!(reduce(vcat, values(state.E)))      # kept spectrum, relative to ground
         push!(energies, spec)
         push!(kept, length(spec))
-        state = update_operators(diag, plan, sym)
     end
     return NRGResult(chain, alg, energies, kept)
 end
