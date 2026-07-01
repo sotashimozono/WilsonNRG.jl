@@ -67,17 +67,17 @@ end
 # ξₙ = tₙ·Λ^{n/2} (the driver's √Λ recursion restores the physical tₙ ∝ Λ^{-n/2}); onsite = 0 by
 # particle–hole symmetry. Same convention as the WilsonLog closed form, so it runs in `nrg_solve`.
 function _zshift_chain(disc, Efn, model::AbstractImpurityModel, nsites::Integer)
-    Λ, z, Γ, D = disc.Λ, disc.z, model.Γ, model.D
+    Λ, z, D = disc.Λ, disc.z, model.D                     # band half-width only; see below re: Γ
     εs = Float64[]
     γs = Float64[]
     for j in 1:(nsites + 40)                              # enough intervals for a stable chain
         a, c = D * _zavg_lo(Λ, j, z), D * _zavg_hi(Λ, j, z)
         c - a > 1.0e-14 * D || continue
         Erep = D * Efn(Λ, j, z)
-        γ2 = (Γ / π) * (c - a)                            # ∫_{Iⱼ} Γ/π dε
-        for s in (1.0, -1.0)                              # particle / hole branches
-            push!(εs, s * Erep)
-            push!(γs, sqrt(γ2))
+        w2 = c - a                                        # ∝ ∫_{Iⱼ} ρ dε; the hybridization scale
+        for s in (1.0, -1.0)                              # (Γ/π for Anderson) cancels in v=γs/‖γs‖,
+            push!(εs, s * Erep)                           # so the chain is model-agnostic — it also
+            push!(γs, sqrt(w2))                           # serves the Kondo band (no Γ field)
         end
     end
     onsite = zeros(nsites)
