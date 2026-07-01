@@ -59,3 +59,51 @@ function occupation(model::AndersonModel, alg::NRGAlgorithm)
     dn = _cfs_hole_weight(shells, ρ, -1)
     return (; total=up + dn, up=up, dn=dn)
 end
+
+# impurity double-occupancy operator n↑n↓ = projector on |↑↓⟩ = block (Q=2, D=0)
+const _N_UP_DN = Dict((2, 0) => fill(1.0, 1, 1))
+
+# ⟨G|O|G⟩ at the last-shell ground state, averaged over the (possibly degenerate) ground multiplet
+function _ground_expectation(st::U1U1State, O)
+    gE = minimum(minimum(v) for v in values(st.E))
+    num = 0.0
+    cnt = 0
+    for (qn, ev) in st.E
+        for (i, e) in enumerate(ev)
+            isapprox(e, gE; atol=1.0e-9) || continue
+            num += haskey(O, qn) ? O[qn][i, i] : 0.0        # 0 on blocks the observable misses
+            cnt += 1
+        end
+    end
+    return num / cnt
+end
+
+"""
+    double_occupancy(model::AndersonModel, alg) -> Float64
+
+T=0 impurity double occupancy `⟨n_{d↑} n_{d↓}⟩` of the Anderson model (`U1U1`) — the ground-state
+weight on the doubly-occupied impurity, the charge-fluctuation static property of Krishna-murthy,
+Wilkins & Wilson II (PRB 21, 1044 (1980)). Evaluated by propagating the `n↑n↓` observable along the
+flow ([`propagate_observable`](@ref)) and reading `⟨G|n↑n↓|G⟩`. At `U=0` the spins are uncorrelated
+so `⟨n_{d↑}n_{d↓}⟩ = ⟨n_{d↑}⟩⟨n_{d↓}⟩`; the Coulomb `U` suppresses it below that value. The local
+charge fluctuation is `⟨n_d²⟩ - ⟨n_d⟩² = ⟨n_d⟩ + 2⟨n_{d↑}n_{d↓}⟩ - ⟨n_d⟩²` with [`occupation`](@ref).
+"""
+function double_occupancy(model::AndersonModel, alg::NRGAlgorithm)
+    alg.symmetry isa U1U1 ||
+        throw(EngineUnimplemented("double_occupancy needs U1U1 (got $(typeof(alg.symmetry)))"))
+    chain = wilson_chain(alg.discretization, model, alg.nsites)
+    sqrtΛ = sqrt(alg.discretization.Λ)
+    st = impurity_init(model, U1U1(), chain)
+    O = deepcopy(_N_UP_DN)
+    for n in bath_sites_in_init(model):(alg.nsites - 1)
+        coupling = n == 0 ? bath_coupling(model) : chain.hopping[n]
+        rescale = n == 0 ? 1.0 : sqrtΛ
+        diag = diagonalize_blocks(
+            add_site(st, U1U1(); coupling, rescale, onsite=chain.onsite[n + 1]), U1U1()
+        )
+        plan = truncation_plan(diag.vals, alg.truncation, U1U1())
+        O = propagate_observable(O, diag, plan, U1U1())
+        st = update_operators(diag, plan, U1U1())
+    end
+    return _ground_expectation(st, O)
+end

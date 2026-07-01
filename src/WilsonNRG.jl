@@ -40,7 +40,7 @@ export wilson_chain, asymptotic_hopping, hybridization, bath_coupling, nrg_solve
 export band_dos
 export shell_scale, thermodynamics, magnetization
 export green_function, self_energy, hybridization_function, compare_self_energy
-export occupation
+export occupation, double_occupancy
 export default_spectral_method, default_self_energy_method
 export clebsch_gordan, wigner3j, wigner6j
 

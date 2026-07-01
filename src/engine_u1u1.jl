@@ -239,3 +239,33 @@ function propagate_operator(
     end
     return Onew
 end
+
+"""
+    propagate_observable(O, diag, plan, ::U1U1) -> O′
+
+Carry a **charge-and-spin-diagonal** local observable one shell forward. `O[(Q,D)]` is the matrix
+of the observable in the parent kept eigenbasis of block `(Q,D)` (e.g. the impurity double occupancy
+`n↑n↓`, initially the projector on `|↑↓⟩ = (Q=2,D=0)`). Unlike the charge-raising `f†`/`d†`
+([`propagate_operator`](@ref)), such an observable acts on the retained (impurity/parent) space and
+as the identity on the new site, so under `add_site` it embeds block-diagonally as `O ⊗ I` and is
+simply rotated into the new kept eigenbasis. Used to evaluate ground-state static properties
+`⟨G|O|G⟩` along the flow (e.g. [`double_occupancy`](@ref)).
+"""
+function propagate_observable(
+    O::Dict{NTuple{2,Int},Matrix{Float64}},
+    diag::U1U1Diag,
+    plan::Dict{NTuple{2,Int},Vector{Int}},
+    ::U1U1,
+)
+    Vk = Dict(qn => diag.vecs[qn][:, idx] for (qn, idx) in plan)
+    Onew = Dict{NTuple{2,Int},Matrix{Float64}}()
+    for (qn, segs) in diag.seg
+        haskey(Vk, qn) || continue
+        M = zeros(Float64, size(diag.vecs[qn], 1), size(diag.vecs[qn], 1))
+        for (p, s, r) in segs                       # O ⊗ I: identity on the site, O on the parent
+            haskey(O, p) && (M[r, r] = O[p])        # ⇒ block-diagonal in the product basis
+        end
+        Onew[qn] = transpose(Vk[qn]) * M * Vk[qn]
+    end
+    return Onew
+end

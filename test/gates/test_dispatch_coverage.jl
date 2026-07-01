@@ -39,6 +39,7 @@ end
         end
         for d in discs, s in (U1U1(), U1SU2(), SU2SU2())
             @test _branch(() -> occupation(And, alg(d, s))) != :gap
+            @test _branch(() -> double_occupancy(And, alg(d, s))) != :gap
         end
         for meth in (BHP(), CFS(), FDM()), d in discs, s in (U1U1(), U1SU2())
             @test _branch(() -> green_function(meth, And, alg(d, s))) != :gap
@@ -55,6 +56,7 @@ end
             @test _branch(() -> nrg_solve(And, alg(d, U1SU2()))) == :ok
             @test _branch(() -> nrg_solve(Kon, alg(d, U1U1()))) == :ok      # ← the fixed Kondo×z-avg
             @test _branch(() -> occupation(And, alg(d, U1U1()))) == :ok
+            @test _branch(() -> double_occupancy(And, alg(d, U1U1()))) == :ok
             for meth in (BHP(), CFS(), FDM())
                 @test _branch(() -> green_function(meth, And, alg(d, U1U1()))) == :ok
             end
