@@ -134,10 +134,10 @@ end
             0.05
     end
 
-    # ---- unwired symmetry fails honestly (SU2SU2 is still a stub; U1U1 and U1SU2 are wired) ----
-    @testset "honest stub for unwired symmetry" begin
-        model = AndersonModel(; U=0.4, εd=-0.2, Γ=0.05, D=1.0)
+    # ---- SU2SU2 needs the particle–hole symmetric point (εd = −U/2); off it, honest refusal ----
+    @testset "honest refusal off the SU2SU2 symmetric point" begin
         alg = NRGAlgorithm(; discretization=WilsonLog(2.5), symmetry=SU2SU2(), nsites=3)
-        @test_throws EngineUnimplemented nrg_solve(model, alg)
+        asym = AndersonModel(; U=0.4, εd=-0.1, Γ=0.05, D=1.0)      # εd ≠ −U/2 = −0.2
+        @test_throws EngineUnimplemented nrg_solve(asym, alg)
     end
 end

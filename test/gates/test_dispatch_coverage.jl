@@ -82,11 +82,19 @@ end
         ) == :ok
     end
 
-    # ---- (b') SU2SU2 is uniformly honest (unimplemented everywhere it is reached, never a gap) ----
-    @testset "SU2SU2 uniformly honest" begin
+    # ---- (b') SU2SU2 wired for nrg_solve at the p–h symmetric point; honest EngineUnimplemented
+    #          off it and for the not-yet-wired SU2SU2 operations (never a raw gap). ----
+    @testset "SU2SU2 wired for nrg_solve (symmetric), honest otherwise" begin
         for d in discs
-            @test _branch(() -> nrg_solve(And, alg(d, SU2SU2()))) == :unimpl
+            @test _branch(() -> nrg_solve(And, alg(d, SU2SU2()))) == :ok     # And is p–h symmetric
         end
+        asym = AndersonModel(; U=0.3, εd=-0.05, Γ, D)                        # εd ≠ −U/2 = −0.15
+        @test _branch(() -> nrg_solve(asym, alg(WilsonLog(2.5), SU2SU2()))) == :unimpl
+        @test _branch(() -> nrg_solve(Kon, alg(WilsonLog(2.5), SU2SU2()))) == :unimpl    # Kondo SU2SU2
+        @test _branch(() -> thermodynamics(And, alg(WilsonLog(2.5), SU2SU2()))) == :unimpl
+        @test _branch(() -> occupation(And, alg(WilsonLog(2.5), SU2SU2()))) == :unimpl
+        @test _branch(() -> green_function(BHP(), And, alg(WilsonLog(2.5), SU2SU2()))) ==
+            :unimpl
     end
 
     # ---- (c) faithfulness of the Kondo fix: the z-averaging chain is MODEL-AGNOSTIC (Γ cancels in
