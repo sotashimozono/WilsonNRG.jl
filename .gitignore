@@ -2,4 +2,4 @@ docs/build/
 docs/refs/
 harness.toml
 .harness/
-Manifest.toml
+Manifest.tomltest/.ci-out/
