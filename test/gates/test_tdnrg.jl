@@ -37,8 +37,11 @@ end
     D = 1.0
     Λ = 2.5
     nsites = 5
-    alg = NRGAlgorithm(;
-        discretization=WilsonLog(Λ), symmetry=U1U1(), truncation=KeepN(10^9), nsites
+    alg = NRGAlgorithm(;                                          # keep-all: the exact short-chain path
+        discretization=WilsonLog(Λ),
+        symmetry=U1U1(),
+        truncation=KeepN(typemax(Int)),
+        nsites,
     )
     chain = wilson_chain(WilsonLog(Λ), AndersonModel(; U=0.0, εd=0.0, Γ, D), nsites)
     V0 = bath_coupling(AndersonModel(; U=0.0, εd=0.0, Γ, D))
@@ -81,6 +84,51 @@ end
         q = quench_dynamics(init, AndersonModel(; U=0.5, εd=0.1, Γ, D), alg; times=tgrid)
         @test all(-1.0e-9 .≤ q.nd .≤ 2.0 + 1.0e-9)               # 0 ≤ ⟨n_d⟩ ≤ 2
         @test q.nd[1] ≈ occupation(init, alg).total atol = 1.0e-9
+    end
+
+    # ---- (5) truncated complete-basis (Anders–Schiller Eq. 3): the scalable long-chain method ----
+    @testset "truncated complete-basis reduces to keep-all and converges" begin
+        _init(εd) = AndersonModel(; U=0.0, εd, Γ, D)
+        # (a) exact limit: the complete-basis path (a real KeepN that still keeps everything on a
+        #     short chain) reproduces the keep-all path bit-for-bit — the machinery is correct.
+        ns = 4
+        algK = NRGAlgorithm(;                                   # keep-all path (KeepN sentinel)
+            discretization=WilsonLog(Λ),
+            symmetry=U1U1(),
+            truncation=KeepN(typemax(Int)),
+            nsites=ns,
+        )
+        algC = NRGAlgorithm(;                                   # complete-basis path, keeps all here
+            discretization=WilsonLog(Λ),
+            symmetry=U1U1(),
+            truncation=KeepN(10^6),
+            nsites=ns,
+        )
+        for (εi, εf) in ((-0.3, 0.2), (0.25, -0.25))
+            qk = quench_dynamics(_init(εi), _init(εf), algK; times=tgrid)
+            qc = quench_dynamics(_init(εi), _init(εf), algC; times=tgrid)
+            @test maximum(abs, qk.nd .- qc.nd) < 1.0e-9        # complete-basis ≡ keep-all (exact limit)
+        end
+        # (b) truncated LONG chain converges to the exact single-particle quench as KeepN ↑.
+        nL = 14
+        chainL = wilson_chain(WilsonLog(Λ), _init(0.0), nL)
+        refL = _sp_quench(-0.3, 0.2, chainL, nL, V0, Λ)
+        tg = [0.0, 2.0, 5.0, 10.0]
+        alg_lo = NRGAlgorithm(;
+            discretization=WilsonLog(Λ), symmetry=U1U1(), truncation=KeepN(50), nsites=nL
+        )
+        alg_hi = NRGAlgorithm(;
+            discretization=WilsonLog(Λ), symmetry=U1U1(), truncation=KeepN(150), nsites=nL
+        )
+        q_lo = quench_dynamics(_init(-0.3), _init(0.2), alg_lo; times=tg)
+        q_hi = quench_dynamics(_init(-0.3), _init(0.2), alg_hi; times=tg)
+        d_lo = maximum(abs, q_lo.nd .- refL.(tg))
+        d_hi = maximum(abs, q_hi.nd .- refL.(tg))
+        @test d_hi < d_lo                                      # truncation error shrinks with KeepN
+        @test d_hi < 0.12                                      # tracks the exact answer (single z;
+        #                                        z-averaging + the Eq. 5 damping tighten it further)
+        # t=0 completeness on the truncated long chain: ⟨n_d(0)⟩ = occupation(initial)
+        @test q_hi.nd[1] ≈ occupation(_init(-0.3), alg_hi).total atol = 0.03
     end
 
     # ---- contracts: shared bath required; honest stub for unwired symmetry ----
