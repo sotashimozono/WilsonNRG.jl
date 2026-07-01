@@ -1,0 +1,58 @@
+name: Verify references
+
+# Stage 2 of the two-stage citation check (design: rules/citations.md, adapted from
+# QAtlas.jl). Checks that every DOI / arXiv reference in docs/reference.bib resolves to
+# real metadata (Crossref / arXiv), without downloading PDFs. Backed by the doiget-verify
+# composite action. Stage 1 (every paper cited in src/ has a bib entry) is the Julia test
+# test/core/test_references_bib.jl, which reads the same QATLAS_REFERENCES_BIB env var so
+# the two checks never disagree on which file is canonical.
+#
+# Currently NON-strict: only malformed ids (`illegal`) fail the job. `unresolved` /
+# `unverifiable` are warnings, because arXiv metadata can return transient HTTP 429 under
+# load (sotashimozono/doiget#264). Flip `strict: "true"` once that is fixed to also fail on
+# dead references.
+
+on:
+  pull_request:
+    paths:
+      - "docs/reference.bib"
+      - ".github/workflows/VerifyReferences.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/reference.bib"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Single source of truth for the bibliography path — the Julia key-consistency test
+# (test/core/test_references_bib.jl) reads the same env var, so the two reference checks
+# never disagree on which file.
+env:
+  QATLAS_REFERENCES_BIB: docs/reference.bib
+
+jobs:
+  verify:
+    name: verify references resolve
+    # doiget action @next has a provenance-log IO error (sotashimozono/doiget upstream bug);
+    # soft-fail so it does not block merges while that gets diagnosed. Re-enable hard-fail
+    # once doiget#264 lands.
+    continue-on-error: true
+    # GitHub-hosted: the action builds the Rust binary and needs outbound access to
+    # Crossref / arXiv.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # Persist the resolver cache across runs so an unchanged bibliography resolves with
+      # zero network calls. Keyed on the .bib so a new ref re-fetches only the delta.
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/doiget
+          key: doiget-resolver-${{ hashFiles(env.QATLAS_REFERENCES_BIB) }}
+          restore-keys: doiget-resolver-
+      - uses: sotashimozono/doiget/.github/actions/verify@next
+        with:
+          path: ${{ env.QATLAS_REFERENCES_BIB }}
+          strict: "false"
+          contact-email: souta.shimozono@gmail.com

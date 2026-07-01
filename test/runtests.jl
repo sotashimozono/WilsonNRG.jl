@@ -2,7 +2,7 @@ ENV["GKSwstype"] = "100"
 
 using WilsonNRG
 using Test, Aqua
-const dirs = ["gates"]
+const dirs = ["core", "gates"]
 
 const FIG_BASE = joinpath(pkgdir(WilsonNRG), "docs", "src", "assets")
 const PATHS = Dict()
