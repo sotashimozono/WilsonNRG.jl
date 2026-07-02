@@ -64,5 +64,7 @@ include("zavg_spectral.jl")
 include("su2.jl")
 include("engine_u1su2.jl")
 include("engine_su2su2.jl")
+include("cfs_su2.jl")          # CFS spectral for U1SU2 (needs the engine above)
+include("spectral_su2.jl")     # self-energy trick (Σ=U·F/G) for U1SU2
 
 end # module WilsonNRG

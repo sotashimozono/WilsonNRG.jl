@@ -6,9 +6,9 @@
 [![Code Style: Blue](https://img.shields.io/badge/Code%20Style-Blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
 <a id="badge-top"></a>
-[![codecov](https://codecov.io/gh/sotashimozono/WilsonNRG.jl/graph/badge.svg?token=Q3oEEiz9A2)](https://codecov.io/gh/sotashimozono/WilsonNRG.jl)
+[![codecov](https://codecov.io/gh/sotashimozono/WilsonNRG.jl/graph/badge.svg?token=YxHzNBBRXI)](https://codecov.io/gh/sotashimozono/WilsonNRG.jl)
 [![Build Status](https://github.com/sotashimozono/WilsonNRG.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/sotashimozono/WilsonNRG.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/main/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A **faithful, reproducible implementation of Wilson's Numerical Renormalization

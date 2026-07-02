@@ -46,7 +46,10 @@ function self_energy(
     ω=nothing,
     kw...,
 )
-    alg.symmetry isa U1U1 || throw(EngineUnimplemented("self_energy needs U1U1"))
+    # Symmetry support is enforced PER PATH, not blanket: the trick's `_gf_poles` needs `U1U1`
+    # (the BHP F-correlator indexes the (Q,2Sz,σ) blocks), while `Dyson` delegates to
+    # `green_function`, which now also supports `U1SU2` (cfs_su2.jl) — so `Dyson` via `CFS`/`FDM`
+    # yields the U1SU2 self-energy for free, and the trick still refuses non-U1U1 honestly.
     ωs = ω === nothing ? _default_omega(model, alg) : collect(float.(ω))
     return _self_energy(via, method, model, alg, ωs, b, window; kw...)
 end
@@ -58,11 +61,15 @@ end
 # (a (::SelfEnergyTrick, ::BHP) method + an AbstractSpectralMethod fallback that throws) rather
 # than a runtime `isa` guard, so the precondition is a dispatch invariant.
 function _self_energy(::SelfEnergyTrick, ::BHP, model, alg, ωs, b, window; kw...)
-    poles = _gf_poles(model, alg; window, with_F=true)
+    poles = _trick_poles(alg.symmetry, model, alg, window)     # G/F windowed poles, symmetry-dispatched
     G = _correlator(poles, ωs, b, 2)
     F = _correlator(poles, ωs, b, 3)
     return (; ω=ωs, Σ=model.U .* F ./ G)
 end
+# windowed G/F poles for the trick: U1U1 sums the (Q,2Sz,σ) blocks; U1SU2 (spectral_su2.jl)
+# propagates the impurity d† AND the compound O_F = n_↓ d†_↑ as spin-½ tensors (the CG weight
+# cancels in F/G, so Σ=U·F/G stays exact — ReΣ(0)=U/2 — even though the windowed G alone is crude).
+_trick_poles(::U1U1, model, alg, window) = _gf_poles(model, alg; window, with_F=true)
 function _self_energy(
     ::SelfEnergyTrick, method::AbstractSpectralMethod, model, alg, ωs, b, window; kw...
 )

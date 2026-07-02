@@ -189,12 +189,21 @@ Needs `U1U1`. `A(ω) = -Im G/π` is [`spectral`](@ref).
 function green_function(
     ::CFS, model::AndersonModel, alg::NRGAlgorithm; b::Real=0.6, ω=nothing
 )
-    alg.symmetry isa U1U1 || throw(
-        EngineUnimplemented("CFS green_function needs U1U1 (got $(typeof(alg.symmetry)))"),
-    )
     ωs = ω === nothing ? _default_omega(model, alg) : collect(float.(ω))
-    shells = _cfs_collect(model, alg)
-    ρ = _cfs_reduced_dms(shells)
-    poles = _cfs_poles(shells, ρ, 1)                     # spin ↑ (per-spin A; symmetric point)
+    poles = _cfs_poles_for(alg.symmetry, model, alg)     # per-spin poles, symmetry-dispatched
     return (; ω=ωs, G=_correlator(poles, ωs, b, 2))
+end
+
+# per-spin complete-basis poles, dispatched on the exploited symmetry. `U1U1` sums the (Q,2Sz,σ)
+# operator blocks directly; `U1SU2` (cfs_su2.jl) propagates the impurity d† as a spin-½ tensor and
+# reproduces the SAME A(ω) via the multiplet reduced density matrices (spectral functions are
+# symmetry-independent — the faithfulness gate).
+function _cfs_poles_for(::U1U1, model::AndersonModel, alg::NRGAlgorithm)
+    shells = _cfs_collect(model, alg)
+    return _cfs_poles(shells, _cfs_reduced_dms(shells), 1)   # spin ↑ (per-spin A; symmetric point)
+end
+function _cfs_poles_for(sym, model, alg)
+    return throw(
+        EngineUnimplemented("CFS green_function needs U1U1 or U1SU2 (got $(typeof(sym)))")
+    )
 end

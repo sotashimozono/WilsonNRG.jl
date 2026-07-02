@@ -229,3 +229,86 @@ function update_operators(diag::U1SU2Diag, plan::Dict{K,Vector{Int}}, ::U1SU2) w
     end
     return U1SU2State(Enew, Fnew)
 end
+
+# ---- impurity (spectator) operator propagation, for the dynamical/spectral layer ----
+# Reduced-ME recoupling for a spin-½ tensor acting on the PARENT multiplet (Sk → Skp) with the
+# just-added site `s` a pure SPECTATOR, expressed in the coupled S → Sp basis:
+#     ⟨(Skp s) Sp ‖ T^{½} ‖ (Sk s) S⟩ = _su2_spectator_reduced(Sk,Skp,s,S,Sp) · ⟨Skp ‖ T^{½} ‖ Sk⟩.
+# Grounded by explicit Clebsch–Gordan contraction (mirrors `_su2_recouple`, the site-operator
+# analogue) + a Wigner-Eckart consistency check across both μ — no 6-j phase convention to guess.
+function _su2_spectator_reduced(Sk, Skp, s, S, Sp)
+    (abs(Sk - 1 // 2) ≤ Skp ≤ Sk + 1 // 2) || return 0.0
+    result = nothing
+    for μ in (1 // 2, -1 // 2)
+        Spz = S + μ
+        abs(Spz) ≤ Sp || continue
+        cgWE = clebsch_gordan(S, S, 1 // 2, μ, Sp, Spz)          # ⟨S S;½ μ|Sp Spz⟩
+        cgWE == 0 && continue
+        acc = 0.0
+        Skz = -Sk
+        while Skz ≤ Sk
+            sz = S - Skz                                          # initial coupled member has Sz = S
+            if abs(sz) ≤ s
+                c1 = clebsch_gordan(Sk, Skz, s, sz, S, S)         # |(Sk s)S,Sz=S⟩ decomposition
+                if c1 != 0
+                    Skpz = Skz + μ                                # T^½_μ raises the parent by μ
+                    if abs(Skpz) ≤ Skp
+                        acc +=
+                            c1 *
+                            clebsch_gordan(Sk, Skz, 1 // 2, μ, Skp, Skpz) *   # parent WE CG
+                            clebsch_gordan(Skp, Skpz, s, sz, Sp, Spz)         # final recoupling CG
+                    end
+                end
+            end
+            Skz += 1
+        end
+        val = acc / cgWE
+        if result === nothing
+            result = val
+        elseif !isapprox(result, val; atol=1.0e-9)
+            error("Wigner-Eckart violation in _su2_spectator_reduced: $result vs $val")
+        end
+    end
+    return result === nothing ? 0.0 : result
+end
+
+"""
+    propagate_impurity_op(O, diag::U1SU2Diag) -> O′
+
+Propagate the reduced matrix elements `O[(Qk,Sk,Skp)] = ⟨(Qk+1,Skp)‖d†‖(Qk,Sk)⟩` of the impurity
+creation operator into a shell's FULL eigenbasis (every eigenvector column, as the spectral final
+states are the discarded ones). The impurity is a spectator spin-½ tensor on the parent, recoupled
+by `_su2_spectator_reduced` (an internal helper); the new-site fermion Jordan–Wigner sign is `(−1)^Qk` (parent
+charge — the SAME sign [`update_operators`](@ref) applies to the new-site `f†`). The `U1SU2`
+analogue of `_cfs_propagate_full`; drives the complete-Fock-space spectral function for `U1SU2`.
+"""
+function propagate_impurity_op(O, diag::U1SU2Diag)
+    Onew = Dict{Tuple{Int,Rational{Int},Rational{Int}},Matrix{Float64}}()
+    for ((Q, S), segs) in diag.seg
+        haskey(diag.vecs, (Q, S)) || continue
+        for Sp in (S - 1 // 2, S + 1 // 2)
+            Sp ≥ 0 || continue
+            tgt = (Q + 1, Sp)
+            haskey(diag.vecs, tgt) || continue
+            M = zeros(Float64, size(diag.vecs[tgt], 1), size(diag.vecs[(Q, S)], 1))
+            tgtseg = Dict((Qk, Sk, q, s) => r for (Qk, Sk, q, s, r) in diag.seg[tgt])
+            for (Qk, Sk, q, s, r) in segs
+                for Skp in (Sk - 1 // 2, Sk + 1 // 2)
+                    Skp ≥ 0 || continue
+                    haskey(O, (Qk, Sk, Skp)) || continue
+                    haskey(tgtseg, (Qk + 1, Skp, q, s)) || continue
+                    coef = _su2_spectator_reduced(Sk, Skp, s, S, Sp) * (-1.0)^Qk
+                    coef == 0.0 && continue
+                    Om = O[(Qk, Sk, Skp)]
+                    rt = tgtseg[(Qk + 1, Skp, q, s)]
+                    for (a, ia) in enumerate(rt), (b, ib) in enumerate(r)
+                        M[ia, ib] += coef * Om[a, b]
+                    end
+                end
+            end
+            blk = transpose(diag.vecs[tgt]) * M * diag.vecs[(Q, S)]
+            iszero(blk) || (Onew[(Q, S, Sp)] = blk)
+        end
+    end
+    return Onew
+end
