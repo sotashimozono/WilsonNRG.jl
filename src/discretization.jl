@@ -61,6 +61,15 @@ function shell_scale(disc::AbstractDiscretization, n::Integer)
     return (1 + disc.Λ^(-1)) / 2 * disc.Λ^(-(n - 1) / 2)
 end
 
+# z-shifted ladder for the z-averaging schemes (Žitko–Pruschke): the twist z ∈ (0,1] shifts the
+# shell energy scale so the log-grid poles of different z INTERLEAVE (z=1 recovers the conventional
+# ladder). This is the "z-dependent scale" needed for z-averaged spectral assembly.
+function _shell_scale_z(Λ::Real, n::Integer, z::Real)
+    return (1 + Λ^(-1)) / 2 * Λ^(-(n - z) / 2)
+end
+shell_scale(disc::CampoOliveira, n::Integer) = _shell_scale_z(disc.Λ, n, disc.z)
+shell_scale(disc::ZitkoPruschke, n::Integer) = _shell_scale_z(disc.Λ, n, disc.z)
+
 """
     hybridization(model::AndersonModel, ω) -> Float64
 
