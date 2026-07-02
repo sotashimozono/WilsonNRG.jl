@@ -70,6 +70,18 @@ end
 # propagates the impurity d† AND the compound O_F = n_↓ d†_↑ as spin-½ tensors (the CG weight
 # cancels in F/G, so Σ=U·F/G stays exact — ReΣ(0)=U/2 — even though the windowed G alone is crude).
 _trick_poles(::U1U1, model, alg, window) = _gf_poles(model, alg; window, with_F=true)
+# the trick's windowed G/F poles exist only for U1U1 (here) and U1SU2 (spectral_su2.jl); any other
+# symmetry (e.g. SU2SU2) refuses cleanly here rather than MethodError-ing four levels down — the
+# precondition-as-dispatch idiom, so `self_energy`/`impurity_solve` honour their EngineUnimplemented
+# promise across every (symmetry, self_energy_method) combination.
+function _trick_poles(sym::AbstractSymmetry, model, alg, window)
+    return throw(
+        EngineUnimplemented(
+            "the self-energy trick (Σ=U·F/G) is not implemented for $(typeof(sym)) — U1U1/U1SU2 only; " *
+            "use via=Dyson() for a generic G-based self-energy",
+        ),
+    )
+end
 function _self_energy(
     ::SelfEnergyTrick, method::AbstractSpectralMethod, model, alg, ωs, b, window; kw...
 )

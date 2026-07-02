@@ -1,22 +1,24 @@
 name = "WilsonNRG"
 uuid = "a92edc93-45ef-4f47-9db6-5fadb6770817"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["sota shimozono <shimozono-sota631@g.ecc.u-tokyo.ac.jp>"]
 
 [deps]
+CommonSolve = "38540f10-b2f7-11e9-35d8-d573e4eb0ff2"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 Aqua = "0.8"
+CommonSolve = "0.2"
 LinearAlgebra = "1"
 Statistics = "1"
 Test = "1"
 julia = "1.10"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "Aqua", "Statistics"]
