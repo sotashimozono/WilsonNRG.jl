@@ -45,6 +45,8 @@ QSpace / `ITensorMPS`-scale bridge is a future extension, not present today.
 """
 module WilsonNRG
 
+using CommonSolve: CommonSolve, solve, init, solve!   # the ecosystem solve/init/solve! verbs (re-exported)
+
 # --- U=0 analytic bootstrap (exact reference for the engine) ---
 export resonant_level_spectral, friedel_pin, spectral_sum_rule
 
@@ -67,7 +69,11 @@ export green_function, self_energy, hybridization_function, compare_self_energy
 export improved_green_function
 export zavg_green_function, zavg_spectral
 # --- the reusable impurity-solver seam (DMFT/DMET/benchmark integration point) ---
-export AbstractImpuritySolver, NRGSolver, ImpuritySolution, impurity_solve
+export solve, init, solve!                              # CommonSolve verbs: solve(problem, solver)
+export AbstractImpuritySolver,
+    NRGSolver, ImpuritySolution, impurity_solve, spectral_function
+export ImpurityProblem, AbstractBath, FlatBand, NumericalBath
+export AbstractEigensolver, DenseEigen
 export occupation, double_occupancy, quench_dynamics
 export default_spectral_method, default_self_energy_method
 export nrg_mps, reconstruct_mps, wilson_chain_hamiltonian, best_mps_energy

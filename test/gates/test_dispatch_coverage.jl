@@ -48,6 +48,18 @@ end
             @test _branch(() -> self_energy(BHP(), And, alg(WilsonLog(2.5), s); via)) !=
                 :gap
         end
+        # the impurity_solve seam must honour EngineUnimplemented across (symmetry, self-energy route,
+        # bath, model) — this is the gate that would have caught SU2SU2+trick MethodError-ing.
+        for s in (U1U1(), U1SU2(), SU2SU2()), via in (SelfEnergyTrick(), Dyson())
+            slv = NRGSolver(; algorithm=alg(WilsonLog(2.5), s), self_energy_method=via)
+            @test _branch(() -> solve(ImpurityProblem(And), slv)) != :gap
+        end
+        @test _branch(() -> solve(ImpurityProblem(Kon), NRGSolver())) != :gap   # non-Anderson refuses cleanly
+        @test _branch(                                                          # non-flat bath refuses cleanly
+            () -> solve(
+                ImpurityProblem(And, NumericalBath([0.0], [0.0 + 0.0im])), NRGSolver()
+            ),
+        ) != :gap
         qfin = AndersonModel(; U=0.3, εd=0.1, Γ, D)         # shares the bath with And
         for s in (U1U1(), U1SU2(), SU2SU2())
             @test _branch(
@@ -67,6 +79,9 @@ end
             for meth in (BHP(), CFS(), FDM(), DMNRG())
                 @test _branch(() -> green_function(meth, And, alg(d, U1U1()))) == :ok
             end
+            @test _branch(  # the seam runs end-to-end on the flat-band Anderson problem
+                () -> solve(ImpurityProblem(And), NRGSolver(; algorithm=alg(d, U1U1()))),
+            ) == :ok
         end
         @test _branch(
             () -> thermodynamics(And, alg(WilsonLog(2.5), U1SU2(); tr=EnergyCut(7.0), n=10))
