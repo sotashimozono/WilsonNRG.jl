@@ -89,6 +89,16 @@ function _safe_invG(z::Complex, floor::Real)
     a == 0 && return complex(1 / floor)
     return conj(z) / (a * floor)
 end
+
+# G from a computed Σ via the Dyson reconstruction G = 1/(ω−εd−Δ−Σ), denominator magnitude-floored
+# (via _safe_invG) so it stays finite at band edges / spectral gaps. The SINGLE source of truth shared
+# by improved_green_function and the impurity_solve seam (solver.jl) — keep the reconstruction here.
+function _green_from_self_energy(model::AndersonModel, ω, Σ)
+    Δ = hybridization_function.(Ref(model), ω)
+    denom = @. ω - model.εd - Δ - Σ
+    gfloor = 1.0e-12 * maximum(abs, denom)
+    return _safe_invG.(denom, gfloor)
+end
 function _self_energy(
     ::Dyson, method::AbstractSpectralMethod, model, alg, ωs, b, window; kw...
 )
@@ -158,10 +168,7 @@ function improved_green_function(
     kw...,
 )
     se = self_energy(method, model, alg; via, kw...)
-    Δ = hybridization_function.(Ref(model), se.ω)
-    denom = se.ω .- model.εd .- Δ .- se.Σ
-    gfloor = 1.0e-12 * maximum(abs, denom)              # keep 1/denom finite at band edges / gaps
-    return (; ω=se.ω, G=_safe_invG.(denom, gfloor))
+    return (; ω=se.ω, G=_green_from_self_energy(model, se.ω, se.Σ))
 end
 function improved_green_function(model::AbstractImpurityModel, alg::NRGAlgorithm; kw...)
     return improved_green_function(default_spectral_method(), model, alg; kw...)

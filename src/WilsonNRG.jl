@@ -66,6 +66,8 @@ export shell_scale, thermodynamics, magnetization, wilson_ratio
 export green_function, self_energy, hybridization_function, compare_self_energy
 export improved_green_function
 export zavg_green_function, zavg_spectral
+# --- the reusable impurity-solver seam (DMFT/DMET/benchmark integration point) ---
+export AbstractImpuritySolver, NRGSolver, ImpuritySolution, impurity_solve
 export occupation, double_occupancy, quench_dynamics
 export default_spectral_method, default_self_energy_method
 export nrg_mps, reconstruct_mps, wilson_chain_hamiltonian, best_mps_energy
@@ -93,5 +95,6 @@ include("engine_u1su2.jl")
 include("engine_su2su2.jl")
 include("cfs_su2.jl")          # CFS spectral for U1SU2 (needs the engine above)
 include("spectral_su2.jl")     # self-energy trick (Σ=U·F/G) for U1SU2
+include("solver.jl")           # the reusable impurity-solver seam (wraps the above)
 
 end # module WilsonNRG

@@ -281,8 +281,8 @@ end
 
 Result of an [`nrg_solve`](@ref) run: the energy flow plus the data needed by the
 spectral/MPS layers. Fields are populated by the iterative engine (Stage 1+);
-the shape is fixed here so downstream code and the `ext/` MPS bridge can depend
-on it.
+the shape is fixed here so downstream code and the MPS layer (`nrg_mps`) can
+depend on it.
 
 - `chain::WilsonChain`       — the bath used
 - `algorithm::NRGAlgorithm`  — the scheme configuration
