@@ -42,7 +42,7 @@ export shell_scale, thermodynamics, magnetization, wilson_ratio
 export green_function, self_energy, hybridization_function, compare_self_energy
 export occupation, double_occupancy, quench_dynamics
 export default_spectral_method, default_self_energy_method
-export nrg_mps, reconstruct_mps
+export nrg_mps, reconstruct_mps, wilson_chain_hamiltonian, best_mps_energy
 export clebsch_gordan, wigner3j, wigner6j
 
 include("bootstrap.jl")

@@ -100,3 +100,100 @@ function reconstruct_mps(mps; nsites::Integer)
     end
     return (; states=states, tags=tags, gnd=gnd, gqn=gqn)
 end
+
+# ===========================================================================
+#  Stage 2 — the variational half of Saberi 2008: NRG's single forward sweep is a NON-optimal
+#  bond-dimension-χ MPS; the variationally-optimal MPS (what vDMRG converges to) has strictly lower
+#  energy at the same χ, and both converge to the exact ground energy as χ grows. Verified against
+#  the FULL Wilson-chain Hamiltonian built INDEPENDENTLY of the engine (Jordan–Wigner fermions).
+# ===========================================================================
+
+using LinearAlgebra: kron, svd, Diagonal, norm, dot, I
+
+# single-orbital ops (basis |0⟩,|↑⟩,|↓⟩,|↑↓⟩; ↑-before-↓ Jordan–Wigner sign on the ↓ operator)
+const _CDU = [0.0 0 0 0; 1 0 0 0; 0 0 0 0; 0 0 1 0]          # c†_↑
+const _CDD = [0.0 0 0 0; 0 0 0 0; 1 0 0 0; 0 -1 0 0]         # c†_↓
+const _PAR = [1.0 0 0 0; 0 -1 0 0; 0 0 -1 0; 0 0 0 1]        # (−1)^n̂ JW string
+
+# single-orbital operator `o` on orbital `i` (0-based) with a JW string on orbitals 0..i-1
+function _jw(o, i, L)
+    op = fill(1.0, 1, 1)
+    for j in 0:(L - 1)
+        op = kron(op, j < i ? _PAR : (j == i ? o : Matrix{Float64}(I, 4, 4)))
+    end
+    return op
+end
+
+"""
+    wilson_chain_hamiltonian(model::AndersonModel, alg) -> Matrix
+
+The FULL many-body Wilson-chain Hamiltonian `H = Σ_{ij,σ} m_ij c†_{iσ}c_{jσ} + U_eff·n_{d↑}n_{d↓}`,
+in the SAME Fock basis as [`reconstruct_mps`](@ref) (impurity = orbital 0, leftmost) but built
+INDEPENDENTLY of the engine via explicit Jordan–Wigner fermions. `m` is the rescaled single-particle
+chain matrix and `U_eff = U·Λ^{(nsites−1)/2}` matches the engine's per-shell √Λ rescaling, so the NRG
+keep-all ground state (`reconstruct_mps`) is `H`'s EXACT ground eigenvector — a fully independent
+check of the whole engine, and the reference for the vDMRG-vs-NRG comparison. EXPONENTIAL — small
+chains only. `U1U1`.
+"""
+function wilson_chain_hamiltonian(model::AndersonModel, alg::NRGAlgorithm)
+    alg.symmetry isa U1U1 ||
+        throw(EngineUnimplemented("wilson_chain_hamiltonian needs U1U1"))
+    Λ = alg.discretization.Λ
+    nsites = alg.nsites
+    L = nsites + 1
+    chain = wilson_chain(alg.discretization, model, nsites)
+    m = reshape([model.εd], 1, 1)                            # rescaled single-particle chain matrix
+    for n in 0:(nsites - 1)
+        c = n == 0 ? bath_coupling(model) : chain.hopping[n]
+        r = n == 0 ? 1.0 : sqrt(Λ)
+        k = size(m, 1)
+        mn = zeros(k + 1, k + 1)
+        mn[1:k, 1:k] = r .* m
+        mn[k + 1, k + 1] = chain.onsite[n + 1]
+        mn[k, k + 1] = c
+        mn[k + 1, k] = c
+        m = mn
+    end
+    cdu = [_jw(_CDU, i, L) for i in 0:(L - 1)]
+    cdd = [_jw(_CDD, i, L) for i in 0:(L - 1)]
+    H = zeros(4^L, 4^L)
+    for i in 1:L, j in 1:L
+        m[i, j] == 0.0 && continue
+        H .+= m[i, j] .* (cdu[i] * cdu[j]' .+ cdd[i] * cdd[j]')
+    end
+    H .+=
+        (model.U * Λ^((nsites - 1) / 2)) .*
+        (_jw(_CDU * _CDU', 0, L) * _jw(_CDD * _CDD', 0, L))
+    return H
+end
+
+"""
+    best_mps_energy(ψ, H, L; D) -> Float64
+
+`⟨ψ_D|H|ψ_D⟩`, where `ψ_D` is the best bond-dimension-`D` MPS approximation of the full state `ψ`
+(sequential SVD compression). This is an UPPER bound on the variational (vDMRG) optimum at bond `D`
+— so `best_mps_energy < E_NRG` already proves the variationally-optimal MPS (vDMRG) beats NRG's
+forward sweep at the same bond dimension (Saberi 2008). Small chains only.
+"""
+function best_mps_energy(ψ, H, L::Integer; D::Integer)
+    tens = Array{Float64,3}[]
+    M = reshape(copy(ψ), 1, length(ψ))
+    lb = 1
+    for i in 1:(L - 1)
+        F = svd(reshape(M, lb * 4, size(M, 2) ÷ 4))
+        χ = min(D, length(F.S))
+        push!(tens, reshape(F.U[:, 1:χ], lb, 4, χ))
+        M = Diagonal(F.S[1:χ]) * F.V[:, 1:χ]'
+        lb = χ
+    end
+    push!(tens, reshape(M, lb, 4, 1))
+    ψD = reshape(tens[1], 4, size(tens[1], 3))
+    for i in 2:L
+        χl = size(tens[i], 1)
+        χr = size(tens[i], 3)
+        ψD = reshape(reshape(ψD, :, χl) * reshape(tens[i], χl, 4 * χr), :, χr)
+    end
+    v = vec(ψD)
+    v ./= norm(v)
+    return dot(v, H * v)
+end
