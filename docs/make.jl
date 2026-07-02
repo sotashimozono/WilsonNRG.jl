@@ -31,7 +31,11 @@ makedocs(;
         assets=["assets/favicon.ico", "assets/custom.css"],
     ),
     modules=[WilsonNRG],
-    pages=["Home" => "index.md", "References" => "references.md"],
+    pages=[
+        "Home" => "index.md",
+        "Limitations" => "limitations.md",
+        "References" => "references.md",
+    ],
 )
 
 deploydocs(;
