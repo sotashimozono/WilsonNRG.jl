@@ -137,6 +137,11 @@ spectral function (Bulla, Costi & Pruschke, RMP 80, 395 (2008), §III.B). Becaus
 pins `ReΣ(0)=U/2`, `ImΣ(0)=0` fix the `ω=0` self-energy, the Kondo resonance is tied to the UNITARY
 LIMIT `πΓA(0) = sin²(πn_d/2) = 1` at the symmetric point — unlike the broadening-limited DIRECT
 spectral function, whose `~T_K`-narrow Kondo peak the log-Gaussian washes out. `A(ω) = -Im G/π`.
+
+NB the default `via=SelfEnergyTrick()` (`Σ = U·F/G`, from the separate F-correlator) is the
+genuine self-energy correction; `via=Dyson()` here is an ALGEBRAIC IDENTITY — `Σ=ω-εd-Δ-1/G` fed
+back gives `G = 1/(1/G)`, reproducing the input `G` to machine precision — so it is a no-op, not an
+independent method (do not use it as a cross-method check).
 """
 function improved_green_function(
     method::AbstractSpectralMethod,
@@ -147,8 +152,20 @@ function improved_green_function(
 )
     se = self_energy(method, model, alg; via, kw...)
     Δ = hybridization_function.(Ref(model), se.ω)
-    return (; ω=se.ω, G=1.0 ./ (se.ω .- model.εd .- Δ .- se.Σ))
+    denom = se.ω .- model.εd .- Δ .- se.Σ
+    gfloor = 1.0e-12 * maximum(abs, denom)              # keep 1/denom finite at band edges / gaps
+    return (; ω=se.ω, G=_safe_invG.(denom, gfloor))
 end
 function improved_green_function(model::AbstractImpurityModel, alg::NRGAlgorithm; kw...)
     return improved_green_function(default_spectral_method(), model, alg; kw...)
+end
+# clean refusal for unsupported models (mirrors green_function's generic fallback), not a MethodError
+function improved_green_function(
+    ::AbstractSpectralMethod, model::AbstractImpurityModel, ::NRGAlgorithm; kw...
+)
+    return throw(
+        EngineUnimplemented(
+            "improved_green_function on $(typeof(model)) not implemented; AndersonModel is available.",
+        ),
+    )
 end

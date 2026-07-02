@@ -26,15 +26,15 @@ function _chi_curve(U, Γ)
     return th.T, th.Tχ_imp
 end
 
-# crossover temperature T* where Tχ_imp crosses `c` (Tχ falls from ~¼ local moment to 0 as T falls)
+# crossover temperature T* where Tχ_imp crosses `c` (Tχ falls from ~¼ local moment to 0 as T falls).
+# The physical flow crosses `c` exactly ONCE; require uniqueness so a noise-driven double crossing
+# returns NaN (caught by the `all(isfinite, Tstars)` gate) rather than silently picking the first.
 function _crossover(T, Tχ, c)
-    for i in 1:(length(T) - 1)
-        if (Tχ[i] - c) * (Tχ[i + 1] - c) < 0
-            t = (c - Tχ[i]) / (Tχ[i + 1] - Tχ[i])
-            return exp(log(T[i]) + t * (log(T[i + 1]) - log(T[i])))
-        end
-    end
-    return NaN
+    xs = [i for i in 1:(length(T) - 1) if (Tχ[i] - c) * (Tχ[i + 1] - c) < 0]
+    length(xs) == 1 || return NaN
+    i = xs[1]
+    t = (c - Tχ[i]) / (Tχ[i + 1] - Tχ[i])
+    return exp(log(T[i]) + t * (log(T[i + 1]) - log(T[i])))
 end
 
 @testset "faithfulness gate · Kondo scale T_K + universal scaling (Wilson/Haldane)" begin
@@ -60,7 +60,7 @@ end
             t = (x - xr[j]) / (xr[j + 1] - xr[j])
             push!(vals, Tχ[j] + t * (Tχ[j + 1] - Tχ[j]))
         end
-        @test length(vals) ≥ 3
+        @test length(vals) == length(curves)                       # every curve reaches this T/T* (no silent drop)
         @test maximum(vals) - minimum(vals) < 0.03                  # curves collapse (universality)
     end
 

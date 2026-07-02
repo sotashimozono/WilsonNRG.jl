@@ -10,6 +10,14 @@
 # not a self-check.
 
 using WilsonNRG, Test
+using Statistics: median
+
+# Robust value of A at ω→0: the median of A over the grid points NEAREST ω=0. Those points all lie
+# at |ω| ≪ T_K, so A is Fermi-liquid-flat there (A ≈ A(0)); the median rejects the 1–2-point spike the
+# self-energy trick's Σ produces right AT ω=0 (a Re G=0 crossing makes Σ=U·F/G jump for a single grid
+# step), which a bare `argmin(|ω|)` could otherwise land on — making the gate depend on a
+# floating-point tie-break rather than the physics.
+_A0(A, ω) = median(A[partialsortperm(abs.(ω), 1:9)])
 
 @testset "faithfulness gate · Kondo resonance πΓA(0)=1 (unitary limit)" begin
     Γ = 0.05
@@ -22,12 +30,12 @@ using WilsonNRG, Test
         g = improved_green_function(BHP(), m, alg)
         A = (-1 / π) .* imag.(g.G)
         ω = g.ω
-        k0 = argmin(abs.(ω))
-        @test 0.8 < π * Γ * A[k0] < 1.15                    # Friedel unitary limit πΓA(0)=1
+        A0 = _A0(A, ω)                                       # robust unitary-limit height
+        @test 0.8 < π * Γ * A0 < 1.15                        # Friedel unitary limit πΓA(0)=1
         @test abs(ω[argmax(A)]) < Γ                          # the peak sits at ω≈0 (Kondo, not a band)
         if U > 0                                             # the Kondo peak dominates the Hubbard bands
             ihub = argmin(abs.(ω .- U / 2))
-            @test A[k0] > 1.5 * A[ihub]
+            @test A0 > 1.5 * A[ihub]
         end
         # (p-h symmetry of the improved A is NOT asserted here: it inherits BHP's windowed p-h break
         #  at U>0 — the documented @test_broken of test_spectral_sumrules.jl / issue #33 — which the
@@ -42,6 +50,6 @@ using WilsonNRG, Test
         )
         g = improved_green_function(BHP(), m0, alg)
         A = (-1 / π) .* imag.(g.G)
-        @test isapprox(π * Γ * A[argmin(abs.(g.ω))], 1.0; atol=0.05)
+        @test isapprox(π * Γ * _A0(A, g.ω), 1.0; atol=0.05)
     end
 end
