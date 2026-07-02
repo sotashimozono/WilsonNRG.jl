@@ -62,5 +62,6 @@ include("self_energy.jl")
 include("su2.jl")
 include("engine_u1su2.jl")
 include("engine_su2su2.jl")
+include("cfs_su2.jl")          # CFS spectral for U1SU2 (needs the engine above)
 
 end # module WilsonNRG
