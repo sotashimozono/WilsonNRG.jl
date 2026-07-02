@@ -67,7 +67,7 @@ export band_dos
 export shell_scale, thermodynamics, magnetization, wilson_ratio
 export green_function, self_energy, hybridization_function, compare_self_energy
 export improved_green_function
-export zavg_green_function, zavg_spectral
+export zavg_green_function, zavg_spectral, spectral_at_zero
 # --- the reusable impurity-solver seam (DMFT/DMET/benchmark integration point) ---
 export solve, init, solve!                              # CommonSolve verbs: solve(problem, solver)
 export AbstractImpuritySolver,

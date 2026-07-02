@@ -168,3 +168,27 @@ end
 function spectral(model::AbstractImpurityModel, alg::NRGAlgorithm; kw...)
     return spectral(default_spectral_method(), model, alg; kw...)
 end
+
+"""
+    spectral_at_zero(ω, A; window=0.1) -> Float64
+
+Windowed spectral density at `ω=0`: the `dω`-weighted mean of `A(ω)` over `|ω| < window`
+(≈ `∫_{|ω|<window} A dω / 2window`). Robust to the sharp z-interleaved peaks of a
+[`zavg_spectral`](@ref) spectrum — a single grid point can fall in a valley between poles and
+read ~0, whereas the window mean recovers the smooth physical `A(0)`. Pick `window` a fraction
+of the lowest relevant scale (≈ `T_K/2` for the Kondo resonance). Use `πΓ·spectral_at_zero(...)`
+for the Friedel unitary limit (`=1` at the symmetric point).
+"""
+function spectral_at_zero(ω::AbstractVector, A::AbstractVector; window::Real=0.1)
+    num = 0.0
+    den = 0.0
+    @inbounds for k in 1:(length(ω) - 1)
+        if abs(ω[k]) < window
+            dω = ω[k + 1] - ω[k]
+            num += A[k] * dω
+            den += dω
+        end
+    end
+    den > 0 || throw(ArgumentError("spectral_at_zero: no grid points within |ω| < $window"))
+    return num / den
+end
