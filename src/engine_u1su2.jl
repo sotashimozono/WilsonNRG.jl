@@ -278,7 +278,7 @@ end
 Propagate the reduced matrix elements `O[(Qk,Sk,Skp)] = ⟨(Qk+1,Skp)‖d†‖(Qk,Sk)⟩` of the impurity
 creation operator into a shell's FULL eigenbasis (every eigenvector column, as the spectral final
 states are the discarded ones). The impurity is a spectator spin-½ tensor on the parent, recoupled
-by [`_su2_spectator_reduced`](@ref); the new-site fermion Jordan–Wigner sign is `(−1)^Qk` (parent
+by `_su2_spectator_reduced` (an internal helper); the new-site fermion Jordan–Wigner sign is `(−1)^Qk` (parent
 charge — the SAME sign [`update_operators`](@ref) applies to the new-site `f†`). The `U1SU2`
 analogue of `_cfs_propagate_full`; drives the complete-Fock-space spectral function for `U1SU2`.
 """
