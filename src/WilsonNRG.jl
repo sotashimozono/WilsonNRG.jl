@@ -42,6 +42,7 @@ export shell_scale, thermodynamics, magnetization, wilson_ratio
 export green_function, self_energy, hybridization_function, compare_self_energy
 export occupation, double_occupancy, quench_dynamics
 export default_spectral_method, default_self_energy_method
+export nrg_mps, reconstruct_mps
 export clebsch_gordan, wigner3j, wigner6j
 
 include("bootstrap.jl")
@@ -59,6 +60,7 @@ include("dmnrg.jl")
 include("occupation.jl")
 include("tdnrg.jl")
 include("self_energy.jl")
+include("nrg_mps.jl")
 include("su2.jl")
 include("engine_u1su2.jl")
 include("engine_su2su2.jl")
