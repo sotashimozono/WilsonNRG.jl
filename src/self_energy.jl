@@ -127,3 +127,28 @@ function compare_self_energy(
     end
     return (; ω=ωs, Σ, disagreement=dis)
 end
+
+"""
+    improved_green_function([method,] model, alg; via=default_self_energy_method(), kw...) -> (; ω, G)
+
+The self-energy-improved impurity Green's function `G(ω) = 1/(ω − εd − Δ(ω) − Σ(ω))`, with `Σ` from
+[`self_energy`](@ref) and `Δ` the [`hybridization_function`](@ref) — the standard accurate NRG
+spectral function (Bulla, Costi & Pruschke, RMP 80, 395 (2008), §III.B). Because the Fermi-liquid
+pins `ReΣ(0)=U/2`, `ImΣ(0)=0` fix the `ω=0` self-energy, the Kondo resonance is tied to the UNITARY
+LIMIT `πΓA(0) = sin²(πn_d/2) = 1` at the symmetric point — unlike the broadening-limited DIRECT
+spectral function, whose `~T_K`-narrow Kondo peak the log-Gaussian washes out. `A(ω) = -Im G/π`.
+"""
+function improved_green_function(
+    method::AbstractSpectralMethod,
+    model::AndersonModel,
+    alg::NRGAlgorithm;
+    via::AbstractSelfEnergyMethod=default_self_energy_method(),
+    kw...,
+)
+    se = self_energy(method, model, alg; via, kw...)
+    Δ = hybridization_function.(Ref(model), se.ω)
+    return (; ω=se.ω, G=1.0 ./ (se.ω .- model.εd .- Δ .- se.Σ))
+end
+function improved_green_function(model::AbstractImpurityModel, alg::NRGAlgorithm; kw...)
+    return improved_green_function(default_spectral_method(), model, alg; kw...)
+end
