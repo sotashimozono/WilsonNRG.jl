@@ -1,5 +1,5 @@
 # ===========================================================================
-#  NRG *is* a matrix product state (Saberi, Weichselbaum & von Delft, PRB 78, 035124 (2008)).
+#  NRG *is* a matrix product state (Saberi, Weichselbaum & von Delft, [doi_10.1103_PhysRevB.78.035124](@cite)).
 #  The kept-eigenvector isometries of the iterative diagonalization,
 #      A^{[n]} : (kept_{n-1} ⊗ site_n) → kept_n     (a rectangular, column-orthonormal map),
 #  ARE the tensors of a left-canonical MPS: stacking them reconstructs each NRG eigenstate as a

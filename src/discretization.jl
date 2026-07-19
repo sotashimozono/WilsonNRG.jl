@@ -18,7 +18,7 @@ function wilson_chain end
 
 Wilson logarithmic discretization of a particle–hole-symmetric flat band.
 On-site energies vanish (`εₙ = 0`) and the dimensionless hoppings are the
-closed form (KWW 1980 Eq. 2.15; Bulla, Costi & Pruschke, RMP 80, 395 (2008), Eq. 32)
+closed form (KWW 1980 Eq. 2.15; Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite), Eq. 32)
 
     ξₙ = (1 + Λ⁻¹)/2 · (1 − Λ^{−n−1}) / √[(1 − Λ^{−2n−1})(1 − Λ^{−2n−3})],   n = 0,1,…
 
@@ -51,7 +51,7 @@ asymptotic_hopping(disc::WilsonLog) = (1 + disc.Λ^(-1)) / 2
 
 Characteristic energy scale `ωₙ` of NRG shell `n` (last site `f_n`), in units of the band
 half-width `D`: the standard NRG ladder `ωₙ = (1+Λ⁻¹)/2 · Λ^{-(n-1)/2}` (Bulla, Costi &
-Pruschke, RMP 80, 395 (2008), Eq. 3.9). A function of `Λ` and `n` only — shared by every
+Pruschke, [doi_10.1103_RevModPhys.80.395](@cite), Eq. 3.9). A function of `Λ` and `n` only — shared by every
 logarithmic discretization at fixed `Λ` (the z-averaging schemes refine the discretized
 *band*, not this shell energy ladder; the O(1) prefactor is absorbed into the convention
 `Tₙ = ωₙ / β̄`, `β̄ ~ 1`). Absolute spectral-function assembly for the z-shifted chains

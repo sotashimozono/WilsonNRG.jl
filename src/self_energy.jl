@@ -162,7 +162,7 @@ end
 
 The self-energy-improved impurity Green's function `G(ω) = 1/(ω − εd − Δ(ω) − Σ(ω))`, with `Σ` from
 [`self_energy`](@ref) and `Δ` the [`hybridization_function`](@ref) — the standard accurate NRG
-spectral function (Bulla, Costi & Pruschke, RMP 80, 395 (2008), §III.B). Because the Fermi-liquid
+spectral function (Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite), §III.B). Because the Fermi-liquid
 pins `ReΣ(0)=U/2`, `ImΣ(0)=0` fix the `ω=0` self-energy, the Kondo resonance is tied to the UNITARY
 LIMIT `πΓA(0) = sin²(πn_d/2) = 1` at the symmetric point — unlike the broadening-limited DIRECT
 spectral function, whose `~T_K`-narrow Kondo peak the log-Gaussian washes out. `A(ω) = -Im G/π`.

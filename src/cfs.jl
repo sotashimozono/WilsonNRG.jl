@@ -1,8 +1,8 @@
 # ===========================================================================
 #  Complete-Fock-space (CFS) spectral function — the T=0 complete-basis method.
 #
-#  Peters, Pruschke & Anders, PRB 74, 245114 (2006); complete basis of Anders &
-#  Schiller, PRL 95, 196801 (2005). The discarded states of every NRG shell, tensored
+#  Peters, Pruschke & Anders, [doi_10.1103_PhysRevB.74.245114](@cite); complete basis of Anders &
+#  Schiller, [doi_10.1103_PhysRevLett.95.196801](@cite). The discarded states of every NRG shell, tensored
 #  with the environment of the not-yet-added sites, form a COMPLETE basis of the full
 #  chain Fock space:  Σ_n Σ_{s∈D_n} |s;e⟩⟨s;e| = 1.  Summing the Lehmann representation
 #  over this basis makes the spectral sum rule ∫A_σ dω = ⟨G|{d_σ,d†_σ}|G⟩ = 1 hold
@@ -13,7 +13,7 @@
 #  reduced density matrices ρ_n[k] on each shell's kept space are built by a backward
 #  sweep; the pole energies are within-shell differences ωₙ(E_s − E_k), so no
 #  cross-shell absolute-energy bookkeeping is needed (that enters only at finite T —
-#  the `FDM` generalization, Weichselbaum & von Delft, PRL 99, 076402 (2007)).
+#  the `FDM` generalization, Weichselbaum & von Delft, [doi_10.1103_PhysRevLett.99.076402](@cite)).
 # ===========================================================================
 
 # d†_σ rotated into a shell's FULL eigenbasis (all states, not only the kept ones —

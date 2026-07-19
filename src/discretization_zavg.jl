@@ -1,5 +1,5 @@
 # ===========================================================================
-#  z-averaging / improved discretization (Žitko & Pruschke, PRB 79, 085106 (2009)).
+#  z-averaging / improved discretization (Žitko & Pruschke, [doi_10.1103_PhysRevB.79.085106](@cite)).
 #
 #  The logarithmic discretization replaces each interval Iⱼ of the conduction band by one
 #  representative level Eⱼ(z) (z = the grid "twist"); the z-averaged local DOS at the first

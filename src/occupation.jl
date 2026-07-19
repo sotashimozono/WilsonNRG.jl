@@ -1,5 +1,5 @@
 # ===========================================================================
-#  Impurity static properties — occupation ⟨n_d⟩ (KWW II, PRB 21, 1044 (1980)).
+#  Impurity static properties — occupation ⟨n_d⟩ (KWW II, [doi_10.1103_PhysRevB.21.1044](@cite)).
 #
 #  The T=0 impurity occupation per spin is the total *removal* (hole) spectral weight
 #      ⟨n_{dσ}⟩ = ∫_{-∞}^{0} A_{dσ}(ω) dω = Σ_f |⟨f| d_σ |G⟩|² = ⟨G| d†_σ d_σ |G⟩,
@@ -45,7 +45,7 @@ end
 T=0 impurity occupation `⟨n_d⟩ = ⟨n_{d↑}⟩ + ⟨n_{d↓}⟩` of the Anderson model, as the total
 removal (hole) spectral weight summed over the complete Fock-space basis (`U1U1`; exact by
 completeness, broadening-free). Reproduces the asymmetric-Anderson static properties of
-Krishna-murthy, Wilkins & Wilson II (PRB 21, 1044 (1980)): `⟨n_d⟩ = 1` at the
+Krishna-murthy, Wilkins & Wilson II ([doi_10.1103_PhysRevB.21.1044](@cite)): `⟨n_d⟩ = 1` at the
 particle–hole-symmetric point `εd = -U/2` for any `U`, and the empty-orbital → mixed-valence
 → Kondo crossover as `εd` sweeps. In the wide-band limit the U=0 value is
 `⟨n_{dσ}⟩ = 1/2 - (1/π)·arctan(εd/Γ)`. See also the Friedel sum rule [`friedel_pin`](@ref).
@@ -83,7 +83,7 @@ end
 
 T=0 impurity double occupancy `⟨n_{d↑} n_{d↓}⟩` of the Anderson model (`U1U1`) — the ground-state
 weight on the doubly-occupied impurity, the charge-fluctuation static property of Krishna-murthy,
-Wilkins & Wilson II (PRB 21, 1044 (1980)). Evaluated by propagating the `n↑n↓` observable along the
+Wilkins & Wilson II ([doi_10.1103_PhysRevB.21.1044](@cite)). Evaluated by propagating the `n↑n↓` observable along the
 flow ([`propagate_observable`](@ref)) and reading `⟨G|n↑n↓|G⟩`. At `U=0` the spins are uncorrelated
 so `⟨n_{d↑}n_{d↓}⟩ = ⟨n_{d↑}⟩⟨n_{d↓}⟩`; the Coulomb `U` suppresses it below that value. The local
 charge fluctuation is `⟨n_d²⟩ - ⟨n_d⟩² = ⟨n_d⟩ + 2⟨n_{d↑}n_{d↓}⟩ - ⟨n_d⟩²` with [`occupation`](@ref).

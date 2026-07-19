@@ -25,9 +25,9 @@ resonant_level_spectral(ω; Γ::Real) = (Γ / π) / (ω^2 + Γ^2)
 Friedel/Fermi-liquid pinning value `sin²(π⟨n_σ⟩)` at half-filling
 (`⟨n_σ⟩ = 1/2 ⇒ 1`).
 
-Grounded references (docs/refs): Langreth, Phys. Rev. 150, 516 (1966) — primary;
-Weichselbaum & von Delft, PRL 99, 076402 (2007) — "πΓ A^exact_{T=0} =
-sin²(π⟨c†_0σ c_0σ⟩₀)"; Bulla, Costi & Pruschke, RMP 80, 395 (2008).
+Grounded references (docs/refs): Langreth, [doi_10.1103_PhysRev.150.516](@cite) — primary;
+Weichselbaum & von Delft, [doi_10.1103_PhysRevLett.99.076402](@cite) — "πΓ A^exact_{T=0} =
+sin²(π⟨c†_0σ c_0σ⟩₀)"; Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite).
 """
 friedel_pin(; Γ::Real) = π * Γ * resonant_level_spectral(0.0; Γ)
 
@@ -36,7 +36,7 @@ friedel_pin(; Γ::Real) = π * Γ * resonant_level_spectral(0.0; Γ)
 
 Numerically integrate `∫ A(ω) dω` (trapezoid over `[-W, W]`) for the U=0
 resonant level. Exact value is 1. Grounded reference (docs/refs): Bulla, Costi &
-Pruschke, RMP 80, 395 (2008) — "∫ dω A_σ(ω,T) = 1 is, by construction, fulfilled
+Pruschke, [doi_10.1103_RevModPhys.80.395](@cite) — "∫ dω A_σ(ω,T) = 1 is, by construction, fulfilled
 exactly".
 """
 function spectral_sum_rule(; Γ::Real, W::Real=1.0e4 * Γ, n::Int=2_000_001)

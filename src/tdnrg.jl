@@ -1,7 +1,7 @@
 # ===========================================================================
 #  Time-dependent NRG (TDNRG) — real-time impurity dynamics after a quench.
 #
-#  Anders & Schiller, PRL 95, 196801 (2005): the impurity parameters are switched suddenly at
+#  Anders & Schiller, [doi_10.1103_PhysRevLett.95.196801](@cite): the impurity parameters are switched suddenly at
 #  t=0 (H_i → H_f, sharing the Wilson chain), and the impurity observable evolves as
 #       ⟨O(t)⟩ = ⟨G_i| e^{iH_f t} O e^{-iH_f t} |G_i⟩.
 #  Two routes, selected by the truncation:
@@ -236,7 +236,7 @@ end
     quench_dynamics(initial::AndersonModel, final::AndersonModel, alg; times) -> (; t, nd)
 
 Real-time impurity occupation `⟨n_d(t)⟩` after a sudden quench of the impurity parameters from
-`initial` to `final` at `t=0` — time-dependent NRG (Anders & Schiller, PRL 95, 196801 (2005)).
+`initial` to `final` at `t=0` — time-dependent NRG (Anders & Schiller, [doi_10.1103_PhysRevLett.95.196801](@cite)).
 The system starts in the ground state of `initial` and evolves under `final`; `times` are the
 (physical) times at which `⟨n_d⟩` is returned.
 
