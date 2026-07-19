@@ -1,6 +1,6 @@
 # ===========================================================================
-#  Density-matrix NRG (DM-NRG) spectral function — Hofstetter, PRL 85, 1508 (2000).
-#  Review: Bulla, Costi & Pruschke, RMP 80, 395 (2008), §III.B.2, Eqs. 86–88.
+#  Density-matrix NRG (DM-NRG) spectral function — Hofstetter, [doi_10.1103_PhysRevLett.85.1508](@cite).
+#  Review: Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite), §III.B.2, Eqs. 86–88.
 #
 #  Improves on the ground-state-projector complete-Fock-space method (cfs.jl) by using the
 #  OFF-DIAGONAL reduced density matrix ρ_red(n) = Tr_{sites>n}[|G⟩⟨G|] (RMP Eq. 86), computed
@@ -113,8 +113,8 @@ end
 """
     green_function(::DMNRG, model::AndersonModel, alg; b=0.6, ω=nothing) -> (; ω, G)
 
-Retarded impurity Green's function via the density-matrix NRG (Hofstetter, PRL 85, 1508 (2000);
-Bulla–Costi–Pruschke RMP 80, 395 (2008), Eqs. 86–88). Uses the **off-diagonal** reduced density
+Retarded impurity Green's function via the density-matrix NRG (Hofstetter, [doi_10.1103_PhysRevLett.85.1508](@cite);
+Bulla–Costi–Pruschke [doi_10.1103_RevModPhys.80.395](@cite), Eqs. 86–88). Uses the **off-diagonal** reduced density
 matrix of the ground state (the coherences the ground-state-projector [`CFS`](@ref) drops), giving
 the exact sum rule `∫A_σ dω = 1` by the anticommutator. `U1U1`. `A(ω) = -Im G/π` is [`spectral`](@ref).
 """

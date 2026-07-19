@@ -1,6 +1,6 @@
 # ===========================================================================
 #  Full-density-matrix (FDM) spectral function at finite T — Weichselbaum & von
-#  Delft, PRL 99, 076402 (2007). Generalizes the T=0 complete-basis CFS (cfs.jl):
+#  Delft, [doi_10.1103_PhysRevLett.99.076402](@cite). Generalizes the T=0 complete-basis CFS (cfs.jl):
 #  the full thermal density matrix weights each discarded state |s⟩ₙ by
 #  4^{N-n} e^{-βE_s} (environment degeneracy of the not-yet-added sites × Boltzmann),
 #  so the reduced density matrices ρ^red_n are seeded thermally rather than by the
@@ -154,7 +154,7 @@ end
     green_function(::FDM, model::AndersonModel, alg; T=0.0, b=0.6, ω=nothing, ω0=nothing) -> (; ω, G)
 
 Retarded impurity Green's function via the full-density-matrix (FDM) method at
-temperature `T` (Weichselbaum & von Delft, PRL 99, 076402 (2007)). The complete basis
+temperature `T` (Weichselbaum & von Delft, [doi_10.1103_PhysRevLett.99.076402](@cite)). The complete basis
 of discarded states is weighted by the full thermal density matrix, so the spectral sum
 rule `∫A_σ dω = 1` holds at any `T` (completeness). `T=0` delegates to the complete-basis
 [`CFS`](@ref) (the exact ground-state projector). Near `ω=0` the resolution is set by the

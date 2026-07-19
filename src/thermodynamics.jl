@@ -1,6 +1,6 @@
 # ===========================================================================
 #  Impurity thermodynamics from the NRG energy flow (Krishna-murthy, Wilkins &
-#  Wilson 1980; Bulla, Costi & Pruschke, RMP 80, 395 (2008), §III.A.3).
+#  Wilson 1980; Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite), §III.A.3).
 #
 #  The impurity contribution to an extensive quantity is the two-run difference
 #      X_imp(T) = X_full(T) − X_bath(T),
@@ -187,7 +187,7 @@ end
     wilson_ratio(model::AndersonModel, alg; betabar=1.0, s_lo=0.03, s_hi=0.25) -> (; T, R, R_fp)
 
 Wilson ratio `R_W(T)` and its strong-coupling fixed-point value `R_fp`, reproducing the Kondo-limit
-`R = 2` (Andrei, PRL 45, 379 (1980); Krishna-murthy–Wilkins–Wilson, PRB 21, 1044 (1980); Hewson,
+`R = 2` (Andrei, [doi_10.1103_PhysRevLett.45.379](@cite); Krishna-murthy–Wilkins–Wilson, [doi_10.1103_PhysRevB.21.1044](@cite); Hewson,
 *The Kondo Problem*, 1993).
 
 `R_W = (χ_imp/γ_imp) / (χ_imp/γ_imp)|_free` — the impurity spin susceptibility over the specific-heat

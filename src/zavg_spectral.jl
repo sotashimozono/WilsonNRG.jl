@@ -1,6 +1,6 @@
 # ===========================================================================
-#  z-averaging of the impurity spectral function (Oliveira & Oliveira, PRB 49, 11986 (1994);
-#  Žitko & Pruschke, PRB 79, 085106 (2009)). A single logarithmic discretization pins the spectral
+#  z-averaging of the impurity spectral function (Oliveira & Oliveira, [doi_10.1103_PhysRevB.49.11986](@cite);
+#  Žitko & Pruschke, [doi_10.1103_PhysRevB.79.085106](@cite)). A single logarithmic discretization pins the spectral
 #  poles to the grid `ωₙ ∝ Λ^{-(n-z)/2}`; averaging `A(ω)` over `nz` twist parameters `z ∈ (0,1]`
 #  INTERLEAVES those grids, so the discretization + log-Gaussian broadening artifacts of any one `z`
 #  cancel and `A(ω)` converges toward the exact continuum spectrum (e.g. the U=0 resonant-level

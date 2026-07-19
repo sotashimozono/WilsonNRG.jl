@@ -39,7 +39,7 @@ flat conduction band of half-width `D`. The `U = 0` limit is the exact
 resonant level reproduced by [`resonant_level_spectral`](@ref).
 
 Refs: Krishna-murthy, Wilkins & Wilson, PRB 21, 1003/1044 (1980);
-Bulla, Costi & Pruschke, RMP 80, 395 (2008).
+Bulla, Costi & Pruschke, [doi_10.1103_RevModPhys.80.395](@cite).
 """
 struct AndersonModel <: AbstractImpurityModel
     U::Float64
@@ -56,7 +56,7 @@ end
 
 Spin-½ Kondo model: antiferromagnetic exchange `J` to a flat band of half-width
 `D`. **Planned** (Stage 5); declared here so the symmetry/spectral machinery can
-be exercised against the Kondo fixed point. Ref: Wilson, RMP 47, 773 (1975).
+be exercised against the Kondo fixed point. Ref: Wilson, [doi_10.1103_RevModPhys.47.773](@cite).
 """
 struct KondoModel <: AbstractImpurityModel
     J::Float64
@@ -94,7 +94,7 @@ end
 """
     CampoOliveira(Λ; z=1.0) <: AbstractDiscretization
 
-`z`-averaging discretization (Campo & Oliveira, PRB 72, 104432 (2005)) — shifts the
+`z`-averaging discretization (Campo & Oliveira, [doi_10.1103_PhysRevB.72.104432](@cite)) — shifts the
 logarithmic grid by the twist `z ∈ (0,1]` and takes the log-mean representative energy
 (Žitko Eq. 32). `wilson_chain` builds the z-shifted chain via Lanczos, so it runs in
 [`nrg_solve`](@ref); note this recipe still leaves band-edge artefacts in `band_dos`
@@ -109,7 +109,7 @@ CampoOliveira(Λ::Real; z::Real=1.0) = CampoOliveira(Float64(Λ), Float64(z))
 """
     ZitkoPruschke(Λ) <: AbstractDiscretization
 
-Improved discretization (Žitko & Pruschke, PRB 79, 085106 (2009)): the representative
+Improved discretization (Žitko & Pruschke, [doi_10.1103_PhysRevB.79.085106](@cite)): the representative
 energies are chosen so the z-averaged band is reproduced *exactly*, `A_{f0}(ω) = ρ(ω)`,
 removing the band-edge artefacts of the conventional/Campo–Oliveira schemes (their Eq. 35/36).
 The flat-band band-DOS reproduction is available via [`band_dos`](@ref); `wilson_chain`
@@ -176,13 +176,13 @@ getting `A(ω)`/`Σ(ω)` accurately is hard — they are meant to be **compared*
 """
 abstract type AbstractSpectralMethod end
 
-"`BHP` — Bulla–Hewson–Pruschke T=0 spectral patching (self-energy trick: J. Phys.: Condens. Matter 10, 8365 (1998); broadening/patching per Bulla–Costi–Pruschke RMP 80, 395 (2008), §III.B). **Implemented.**"
+"`BHP` — Bulla–Hewson–Pruschke T=0 spectral patching (self-energy trick: [doi_10.1088_0953-8984_10_37_021](@cite); broadening/patching per Bulla–Costi–Pruschke [doi_10.1103_RevModPhys.80.395](@cite), §III.B). **Implemented.**"
 struct BHP <: AbstractSpectralMethod end
-"`DMNRG` — density-matrix NRG spectral function via the off-diagonal reduced DM (Hofstetter, PRL 85, 1508 (2000)). **Implemented.**"
+"`DMNRG` — density-matrix NRG spectral function via the off-diagonal reduced DM (Hofstetter, [doi_10.1103_PhysRevLett.85.1508](@cite)). **Implemented.**"
 struct DMNRG <: AbstractSpectralMethod end
-"`CFS` — complete-Fock-space / TDNRG (Anders & Schiller, PRL 95, 196801 (2005)). **Planned**."
+"`CFS` — complete-Fock-space / TDNRG (Anders & Schiller, [doi_10.1103_PhysRevLett.95.196801](@cite)). **Planned**."
 struct CFS <: AbstractSpectralMethod end
-"`FDM` — full-density-matrix, sum-rule conserving (Weichselbaum & von Delft, PRL 99, 076402 (2007)). **Planned** (robust default-to-be)."
+"`FDM` — full-density-matrix, sum-rule conserving (Weichselbaum & von Delft, [doi_10.1103_PhysRevLett.99.076402](@cite)). **Planned** (robust default-to-be)."
 struct FDM <: AbstractSpectralMethod end
 
 """
@@ -197,7 +197,7 @@ abstract type AbstractSelfEnergyMethod end
     SelfEnergyTrick() <: AbstractSelfEnergyMethod
 
 `Σ_σ = U · F_σ / G_σ` with `F_σ = ⟨⟨d_σ n_{-σ}; d†_σ⟩⟩` (Bulla–Hewson–Pruschke,
-J. Phys.: Condens. Matter 10, 8365 (1998)). **Robust** — `Σ ∝ U` (exact `0` at `U=0`) and `F/G` shares
+[doi_10.1088_0953-8984_10_37_021](@cite)). **Robust** — `Σ ∝ U` (exact `0` at `U=0`) and `F/G` shares
 poles/broadening so errors largely cancel. The default ([`default_self_energy_method`](@ref)).
 """
 struct SelfEnergyTrick <: AbstractSelfEnergyMethod end

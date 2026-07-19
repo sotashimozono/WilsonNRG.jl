@@ -1,18 +1,19 @@
 # test/core/test_references_bib.jl
 #
 # Stage 1 of the two-stage citation check (design: rules/citations.md, adapted from
-# QAtlas.jl): every paper cited in a `src/` docstring resolves to an entry in
-# docs/reference.bib — catches dangling / missing / fabricated references (e.g. the
-# non-existent "PRB 57, 10287 (1998)" that a manual audit turned up), plus keeps the
-# bibliography well-formed (unique keys, every entry DOI-bearing, DOIs well-formed).
+# QAtlas.jl): every reference cited in a `src/` docstring via `[key](@cite)` resolves to
+# an entry in docs/reference.bib — catches a dangling / mistyped / fabricated citation key
+# offline, on every PR — plus keeps the bibliography well-formed (unique keys, every entry
+# DOI-bearing, DOIs well-formed).
 #
 #   Stage 2 (CI, doiget verify): every reference.bib DOI actually exists upstream —
-#   see .github/workflows/VerifyReferences.yml. Both read QATLAS_REFERENCES_BIB, so
-#   the two checks never disagree on which file is canonical.
+#   see .github/workflows/VerifyReferences.yml. Both read QATLAS_REFERENCES_BIB, so the
+#   two checks never disagree on which file is canonical.
 #
-# WilsonNRG cites in free text ("PRB 74, 245114 (2006)") rather than bibkeys, so the
-# key-consistency check matches a cited (volume, first-page) against the bib's volume/
-# pages fields — a (volume, page) pair pins a paper uniquely.
+# Convention (rules/citations.md): src docstrings cite with `[<bibkey>](@cite)`, where
+# <bibkey> is the doiget-generated key (e.g. `doi_10.1103_PhysRevB.79.085106`) that
+# DocumenterCitations resolves to the References page. The bibkey IS doiget's citation
+# key, so a reference added with `doiget cite` drops in without renaming.
 
 using WilsonNRG, Test
 
@@ -22,46 +23,36 @@ function references_bib_path()
     )
 end
 
-# (key, volume, first-page, doi) for each @entry in the .bib (volume precedes pages within an entry)
+# (key, doi) for each @entry in the .bib.
 function bib_entries(path::AbstractString)
-    entries = NamedTuple{
-        (:key, :vol, :page, :doi),Tuple{String,Union{Int,Nothing},Union{Int,Nothing},String}
-    }[]
-    key = "";
-    vol = nothing;
-    page = nothing;
+    entries = NamedTuple{(:key, :doi),Tuple{String,String}}[]
+    key = ""
     doi = ""
-    flush!() = isempty(key) || push!(entries, (; key, vol, page, doi))
+    flush!() = isempty(key) || push!(entries, (; key, doi))
     for line in eachline(path)
         m = match(r"^@\w+\{\s*([^,\s]+)\s*,", line)
         if m !== nothing
-            flush!();
-            key = String(m.captures[1]);
-            vol = nothing;
-            page = nothing;
+            flush!()
+            key = String(m.captures[1])
             doi = ""
             continue
         end
-        v = match(r"volume\s*=\s*\{(\d+)\}", line);
-        v !== nothing && (vol = parse(Int, v.captures[1]))
-        p = match(r"pages\s*=\s*\{0*(\d+)", line);
-        p !== nothing && (page = parse(Int, p.captures[1]))
-        d = match(r"doi\s*=\s*\{([^}]+)\}", line);
+        d = match(r"doi\s*=\s*\{([^}]+)\}", line)
         d !== nothing && (doi = String(d.captures[1]))
     end
     flush!()
     return entries
 end
 
-# (volume, first-page) cited in any src/ docstring, keyed on a journal token so "Eq. (3)" etc. don't match
+# bibkeys cited in any src/ file via [key](@cite) / [key](@citet) / [key](@citep).
 function src_citations()
-    pat = r"(?:PRB|PRL|RMP|Rev\. ?Mod\. ?Phys\.|Phys\. ?Rev\. ?Lett\.|Phys\. ?Rev\. ?B|Phys\. ?Rev\.|J\. ?Phys\.:? ?Condens\.? ?Matter)\s+(\d+),?\s+0*(\d+)\s+\((\d{4})\)"
+    pat = r"\[([^\]]+)\]\(@cite\w*\)"
     srcdir = joinpath(pkgdir(WilsonNRG), "src")
-    cited = Set{Tuple{Int,Int}}()
+    cited = Set{String}()
     for f in readdir(srcdir; join=true)
         endswith(f, ".jl") || continue
         for mt in eachmatch(pat, read(f, String))
-            push!(cited, (parse(Int, mt.captures[1]), parse(Int, mt.captures[2])))
+            push!(cited, String(mt.captures[1]))
         end
     end
     return cited
@@ -75,7 +66,7 @@ end
     # ---- bibliography is well-formed: non-trivial, unique keys, every entry DOI-bearing ----
     @test length(entries) ≥ 11
     keys = [e.key for e in entries]
-    @test length(unique(keys)) == length(keys)                       # no duplicate / near-dup keys
+    @test length(unique(keys)) == length(keys)                       # no duplicate keys
     @testset "every entry has a well-formed DOI" begin
         for e in entries
             @test !isempty(e.doi)                                    # doi2bib-quality: DOI present
@@ -83,15 +74,15 @@ end
         end
     end
 
-    # ---- every paper cited in src/ has a matching bib entry (vol, first-page) ----
-    #      would have failed on the fabricated "PRB 57, 10287" and on Peters/Campo/Hofstetter
-    #      before their entries were added.
-    bibvp = Set((e.vol, e.page) for e in entries if e.vol !== nothing && e.page !== nothing)
+    # ---- every [key](@cite) in src/ resolves to a bib entry ----
+    #      catches a dangling / mistyped / fabricated citation key (the @cite counterpart of
+    #      the fabricated "PRB 57, 10287 (1998)" a manual audit once turned up).
+    bibkeys = Set(e.key for e in entries)
     cited = src_citations()
-    @test !isempty(cited)                                            # the scanner actually found citations
-    missing_refs = filter(vp -> !(vp in bibvp), collect(cited))
+    @test !isempty(cited)                                            # the scanner actually found @cite keys
+    missing_refs = filter(k -> !(k in bibkeys), collect(cited))
     if !isempty(missing_refs)
-        @info "src citations with no reference.bib entry (volume, page)" missing_refs
+        @info "src [key](@cite) with no reference.bib entry" missing_refs
     end
     @test isempty(missing_refs)
 end

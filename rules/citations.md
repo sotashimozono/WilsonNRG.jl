@@ -7,14 +7,19 @@ only as good as its citation — so the citation must be **precise** and **check
 paper itself** (no-cite-without-reproduction). This is the literature counterpart of "tests must
 check an independent answer". Design adapted from [QAtlas.jl](https://github.com/QAtlasHub/QAtlas.jl).
 
-## 1. Cite a precise reference + equation, not "Author (Year)"
+## 1. Cite via `[key](@cite)` + the specific equation/table
 
-- The docstring / header of each method cites the **journal, volume, page, year** and the
-  **specific equation / table** used, e.g. `Žitko & Pruschke, PRB 79, 085106 (2009), Eq. 36`.
+- The docstring of each method cites its paper with **`[<bibkey>](@cite)`**, followed by the
+  **specific equation / table / section** used, e.g.
+  `Žitko & Pruschke [doi_10.1103_PhysRevB.79.085106](@cite), Eq. 36`. `DocumenterCitations`
+  renders it as a numbered link to the [References](../docs/src/references.md) page.
+- `<bibkey>` **is doiget's own citation key** (e.g. `doi_10.1103_PhysRevB.79.085106`): a
+  reference fetched with `doiget cite <DOI>` drops into `reference.bib` and is cited by that
+  same key — no renaming, so the docstring key never drifts from doiget or the bibliography.
 - The full entry lives in `docs/reference.bib` with a **DOI** (`doi2bib`-quality: title,
-  authors, journal, volume, year, **doi**). Add it there if missing.
-- "Author (Year)" with no volume/page is not acceptable: the reader must be able to open the
-  paper and land on the exact result.
+  authors, journal, volume, year, **doi**). Add it there with `doiget cite` if missing.
+- A bare "Author (Year)" is not acceptable: cite the precise `[key](@cite)` so the reader
+  lands on the exact result via the References page.
 
 A method with no traceable published reference does not go into `src/` as a reproduction.
 
@@ -55,11 +60,11 @@ self-consistency.
 The same `reference.bib` that the docs bibliography renders is checked two ways (both read
 `QATLAS_REFERENCES_BIB`, so they never disagree on which file is canonical):
 
-1. **Stage 1 — Julia** (`test/core/test_references_bib.jl`): every paper cited in a `src/`
-   docstring (by `volume, page`) resolves to a `reference.bib` entry, keys are unique, and every
-   entry carries a well-formed DOI. Catches dangling / missing / **fabricated** references — it
-   would fail on a non-existent id like the "PRB 57, 10287 (1998)" a manual audit once turned up
-   (the real Bulla–Hewson–Pruschke paper is J. Phys.: Condens. Matter 10, 8365 (1998)).
+1. **Stage 1 — Julia** (`test/core/test_references_bib.jl`): every `[key](@cite)` in a `src/`
+   docstring resolves to a `reference.bib` entry, keys are unique, and every entry carries a
+   well-formed DOI. Catches a dangling / mistyped / **fabricated** citation key — as it would a
+   non-existent reference like the "PRB 57, 10287 (1998)" a manual audit once turned up (the real
+   Bulla–Hewson–Pruschke paper is J. Phys.: Condens. Matter 10, 8365 (1998)).
 2. **Stage 2 — CI** (`.github/workflows/VerifyReferences.yml`): every `reference.bib` DOI / arXiv
    id actually resolves upstream (Crossref / arXiv) via the `doiget verify` action, without
    downloading PDFs.
